@@ -2184,7 +2184,7 @@
     <div class="cal-grid" id="calGrid"></div>
     <p class="recipe-hint" style="margin-top:14px;">
       Production schedule dates appear automatically in red the moment a batch is released and proceeded
-      in Production Planning. Food tasting and event entries are saved to the shared Google Sheet database.
+      in Production Planning. Food tasting and event entries are saved to the shared Firestore database.
     </p>
   </section>
 
@@ -2364,26 +2364,22 @@
     </div>
   </section>
 
-  <p class="footer-note">Data is shared through your team's Google Sheet — Kitchen Cost Rail, Commissary Operations Dashboard.</p>
+  <p class="footer-note">Data is shared through your team's Firestore database — Kitchen Cost Rail, Commissary Operations Dashboard.</p>
 </div>
 
 <script type="module">
   // ---------------------------------------------------------------------
-  // Firestore — parallel test layer, OFF by default.
+  // Firestore — the app's database.
   //
-  // This does NOT replace your Google Sheets database yet. It just sets
-  // up a second, independent connection to Firestore so we can verify
-  // reads/writes work correctly before anything switches over. As long
-  // as window.USE_FIRESTORE (set in the main script below) stays false,
-  // this code loads Firebase and signs in anonymously, but the app keeps
-  // using Google Sheets for every save and load, exactly as before.
-  //
-  // Collections mirror your Sheets tabs 1:1: recipes, inventory,
-  // packages, production_plans, inventory_history, users.
+  // Google Sheets/Apps Script has been fully removed. Every read and
+  // write (recipes, inventory, packages, production plans, inventory
+  // history, calendar, master archive, access settings) goes through
+  // Firestore now, using anonymous sign-in.
   // ---------------------------------------------------------------------
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
-    getFirestore, collection, getDocs, doc, setDoc, deleteDoc, writeBatch
+    getFirestore, collection, getDocs, getDoc, doc, setDoc, deleteDoc, writeBatch,
+    query, orderBy, startAt, endAt, documentId
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import {
     getAuth, signInAnonymously, onAuthStateChanged
@@ -2454,21 +2450,43 @@
     }
   }
 
-  window.firestoreAPI = { fsGetCollection, fsReplaceCollection };
+  // Simple key/value store (a "kv" collection, one doc per key) — replaces
+  // the old Apps Script get/set/delete/list API used for calendar events,
+  // the Master Archive, and access settings.
+  async function fsKvGet(key){
+    await window.firestoreReady;
+    const snap = await getDoc(doc(db, 'kv', key));
+    if(!snap.exists()) return null;
+    return { key, value: snap.data().value };
+  }
+  async function fsKvSet(key, value){
+    await window.firestoreReady;
+    await setDoc(doc(db, 'kv', key), { value: value });
+    return { key, value };
+  }
+  async function fsKvDelete(key){
+    await window.firestoreReady;
+    await deleteDoc(doc(db, 'kv', key));
+    return { key, deleted: true };
+  }
+  async function fsKvList(prefix){
+    await window.firestoreReady;
+    const p = prefix || '';
+    const q = query(collection(db, 'kv'), orderBy(documentId()), startAt(p), endAt(p + '\uf8ff'));
+    const snap = await getDocs(q);
+    const keys = [];
+    snap.forEach(d => keys.push(d.id));
+    return { keys };
+  }
+
+  window.firestoreAPI = { fsGetCollection, fsReplaceCollection, fsKvGet, fsKvSet, fsKvDelete, fsKvList };
 </script>
 
 <script>
-// Shared Google Apps Script Web App URL — still the live database for
-// now. Used for recipes/inventory/packages/production-plans AND (via the
-// small key-value actions get/set/delete/list below) for Master Archive
-// and Manage Access.
-//
-// USE_FIRESTORE below is a manual test switch: while it's false (the
-// default), everything keeps reading/writing Google Sheets exactly as
-// before — Firestore just sits there, connected but unused, so we can
-// test it safely without touching your live data.
-const USE_FIRESTORE = new URLSearchParams(location.search).get('firestore') === '1';
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyfzXxz541aL1AeyvabV_pRjQnaPX2k6LHjXPPbiuGU1UqmLZneSxEy8XceYXiPbmPY2Q/exec";
+// Google Sheets/Apps Script has been removed. Firestore is now the one
+// and only database for everything: recipes, inventory, packages,
+// production plans, inventory history, calendar, master archive, and
+// access settings.
 
 function initApp(){
   const PHP = n => '₱' + (Number(n)||0).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -2539,46 +2557,21 @@ function initApp(){
   }
 
   async function fetchServerSnapshot(){
-    if(USE_FIRESTORE){
-      const [recipes, inventory, packages, production_plans, inventory_history] = await Promise.all([
-        window.firestoreAPI.fsGetCollection('recipes', 'id'),
-        window.firestoreAPI.fsGetCollection('inventory', 'key'),
-        window.firestoreAPI.fsGetCollection('packages', 'id'),
-        window.firestoreAPI.fsGetCollection('production_plans', 'id'),
-        window.firestoreAPI.fsGetCollection('inventory_history', 'id')
-      ]);
-      return { recipes, inventory, packages, production_plans, inventory_history };
-    }
-    const res = await fetch(GOOGLE_SHEET_URL, { cache:'no-store' });
-    const db = await res.json();
-    const parseArr = v => (v && v !== "[]") ? JSON.parse(v) : [];
-    return {
-      recipes: parseArr(db.recipes),
-      inventory: parseArr(db.inventory),
-      packages: parseArr(db.packages),
-      production_plans: parseArr(db.production_plans),
-      inventory_history: Array.isArray(db.inventory_history) ? db.inventory_history : []
-    };
+    const [recipes, inventory, packages, production_plans, inventory_history] = await Promise.all([
+      window.firestoreAPI.fsGetCollection('recipes', 'id'),
+      window.firestoreAPI.fsGetCollection('inventory', 'key'),
+      window.firestoreAPI.fsGetCollection('packages', 'id'),
+      window.firestoreAPI.fsGetCollection('production_plans', 'id'),
+      window.firestoreAPI.fsGetCollection('inventory_history', 'id')
+    ]);
+    return { recipes, inventory, packages, production_plans, inventory_history };
   }
 
-  function pushToSheet(action, data){
-    // no-cors: fire-and-forget — we can't read the response body, but we
-    // always merge against a fresh server read (above) before calling this,
-    // so we already know this write is safe to make.
-    return fetch(GOOGLE_SHEET_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action, data })
-    }).catch(e=>console.error('Sheet save failed (offline?):', e));
-  }
-
-  // Pulls the latest data from the Google Sheet and refreshes every panel.
+  // Pulls the latest data from Firestore and refreshes every panel.
   // Called before the app renders, after every save, on a timer, and when
-  // the tab regains focus — so every browser looks at the sheet, never a
-  // stale local copy.
-  async function syncFromGoogleSheets(){
-    if(!GOOGLE_SHEET_URL) return false;
+  // the tab regains focus — so every browser looks at the same database,
+  // never a stale local copy.
+  async function syncFromFirestore(){
     try{
       const db = await fetchServerSnapshot();
       recipes = db.recipes;
@@ -2615,15 +2608,15 @@ function initApp(){
       if (typeof renderProductionList === 'function') renderProductionList();
       return true;
     }catch(e){
-      console.error('Failed to sync from Google Sheets:', e);
+      console.error('Failed to sync from Firestore:', e);
       return false;
     }
   }
 
   // ---------- Storage ----------
-  // Once syncFromGoogleSheets() has run this session, these five loadX()
-  // functions just render what's already in memory — the sheet IS the data.
-  // They only fall back to this device's local cache when the sheet was
+  // Once syncFromFirestore() has run this session, these five loadX()
+  // functions just render what's already in memory — Firestore IS the data.
+  // They only fall back to this device's local cache when Firestore was
   // unreachable (offline use), instead of it being the primary source.
   async function loadRecipes(){
     if(!syncedOnce){
@@ -2639,19 +2632,13 @@ function initApp(){
   async function persistRecipes(){
     try{
       const delta = diffAgainstSnapshot(lastSyncedRecipes, recipes, 'id');
-      if(GOOGLE_SHEET_URL){
-        try{
-          const fresh = await fetchServerSnapshot();
-          recipes = applyDeltaToServerArr(fresh.recipes, delta, 'id');
-        }catch(e){ /* offline — save what we have locally instead */ }
-      }
+      try{
+        const fresh = await fetchServerSnapshot();
+        recipes = applyDeltaToServerArr(fresh.recipes, delta, 'id');
+      }catch(e){ /* offline — save what we have locally instead */ }
       lastSyncedRecipes = cloneArr(recipes);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
-      if(USE_FIRESTORE){
-        await window.firestoreAPI.fsReplaceCollection('recipes', recipes, 'id');
-      } else if(GOOGLE_SHEET_URL){
-        pushToSheet('saveRecipes', recipes);
-      }
+      await window.firestoreAPI.fsReplaceCollection('recipes', recipes, 'id');
       renderRecipeList();
       renderProcurement();
     }catch(e){ console.error('Storage error', e); }
@@ -2670,15 +2657,13 @@ function initApp(){
   async function persistPlans(){
     try{
       const delta = diffAgainstSnapshot(lastSyncedPlans, plans, 'id');
-      if(GOOGLE_SHEET_URL){
-        try{
-          const fresh = await fetchServerSnapshot();
-          plans = applyDeltaToServerArr(fresh.production_plans, delta, 'id');
-        }catch(e){ /* offline */ }
-      }
+      try{
+        const fresh = await fetchServerSnapshot();
+        plans = applyDeltaToServerArr(fresh.production_plans, delta, 'id');
+      }catch(e){ /* offline */ }
       lastSyncedPlans = cloneArr(plans);
       localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
-      if(GOOGLE_SHEET_URL) pushToSheet('savePlans', plans);
+      await window.firestoreAPI.fsReplaceCollection('production_plans', plans, 'id');
       if (typeof renderPlans === 'function') renderPlans();
     }catch(e){ console.error('Storage error', e); }
   }
@@ -2696,15 +2681,13 @@ function initApp(){
   async function persistPackages(){
     try{
       const delta = diffAgainstSnapshot(lastSyncedPackages, packages, 'id');
-      if(GOOGLE_SHEET_URL){
-        try{
-          const fresh = await fetchServerSnapshot();
-          packages = applyDeltaToServerArr(fresh.packages, delta, 'id');
-        }catch(e){ /* offline */ }
-      }
+      try{
+        const fresh = await fetchServerSnapshot();
+        packages = applyDeltaToServerArr(fresh.packages, delta, 'id');
+      }catch(e){ /* offline */ }
       lastSyncedPackages = cloneArr(packages);
       localStorage.setItem(PACKAGES_KEY, JSON.stringify(packages));
-      if(GOOGLE_SHEET_URL) pushToSheet('savePackages', packages);
+      await window.firestoreAPI.fsReplaceCollection('packages', packages, 'id');
       renderPackageList();
     }catch(e){ console.error('Storage error', e); }
   }
@@ -2723,15 +2706,13 @@ function initApp(){
   async function persistInventory(){
     try{
       const delta = diffAgainstSnapshot(lastSyncedInventory, inventory, 'key');
-      if(GOOGLE_SHEET_URL){
-        try{
-          const fresh = await fetchServerSnapshot();
-          inventory = applyDeltaToServerArr(fresh.inventory, delta, 'key');
-        }catch(e){ /* offline */ }
-      }
+      try{
+        const fresh = await fetchServerSnapshot();
+        inventory = applyDeltaToServerArr(fresh.inventory, delta, 'key');
+      }catch(e){ /* offline */ }
       lastSyncedInventory = cloneArr(inventory);
       localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
-      if(GOOGLE_SHEET_URL) pushToSheet('saveInventory', inventory);
+      await window.firestoreAPI.fsReplaceCollection('inventory', inventory, 'key');
     }catch(e){ console.error('Storage error', e); }
   }
 
@@ -2770,20 +2751,11 @@ function initApp(){
     if (typeof renderHistoryPanel === 'function') renderHistoryPanel();
   }
 
-  // History is append-only, so we only ever send entries this browser
-  // hasn't already confirmed the sheet has — never the whole log. (Sending
-  // the whole log every time was duplicating every past entry on every
-  // single stock change.)
   async function persistInventoryHistory(){
     try{
       localStorage.setItem(INV_HIST_KEY, JSON.stringify(inventoryHistory));
-      if(GOOGLE_SHEET_URL){
-        const unsynced = inventoryHistory.filter(h => h.id && !syncedHistoryIds.has(h.id));
-        if(unsynced.length){
-          pushToSheet('saveInventoryHistory', unsynced);
-          unsynced.forEach(h=>syncedHistoryIds.add(h.id));
-        }
-      }
+      await window.firestoreAPI.fsReplaceCollection('inventory_history', inventoryHistory, 'id');
+      syncedHistoryIds = new Set(inventoryHistory.map(h=>h.id).filter(Boolean));
     }catch(e){ console.error('Storage error', e); }
   }
 
@@ -5381,7 +5353,7 @@ function initApp(){
   // =====================================================================
   // CALENDAR MODULE
   //   Same process as the standalone food-tasting schedule, but stored in
-  //   the shared Google Sheet (kv_store key "calendar_events") instead of
+  //   the shared Firestore database (kv key "calendar_events") instead of
   //   this device, so the whole team sees the same board.
   //   Yellow = food tasting · Blue = event · Red = production schedule
   //   (red entries are generated from released production batches, so they
@@ -5403,25 +5375,25 @@ function initApp(){
 
   async function loadCalendarEvents(){
     try{
-      const res = await gasCall('get', { key: CAL_KEY });
+      const res = await window.storage.get(CAL_KEY);
       calEvents = res && res.value ? JSON.parse(res.value) : [];
     }catch(e){ calEvents = []; }
     if(!Array.isArray(calEvents)) calEvents = [];
     try{
-      const st = await gasCall('get', { key: CAL_STATUS_KEY });
+      const st = await window.storage.get(CAL_STATUS_KEY);
       calStatuses = st && st.value ? JSON.parse(st.value) : {};
     }catch(e){ calStatuses = {}; }
     if(!calStatuses || typeof calStatuses !== 'object' || Array.isArray(calStatuses)) calStatuses = {};
   }
   async function persistCalendarStatuses(){
-    try{ await gasCall('set', { key: CAL_STATUS_KEY, value: JSON.stringify(calStatuses) }); }
+    try{ await window.storage.set(CAL_STATUS_KEY, JSON.stringify(calStatuses)); }
     catch(e){ console.warn('Calendar status save failed', e); }
   }
   function calStatusLabel(st){
     return st === 'closed' ? '✕ Closed' : (st === 'open' ? '✓ Open' : 'Mark');
   }
   async function persistCalendarEvents(){
-    try{ await gasCall('set', { key: CAL_KEY, value: JSON.stringify(calEvents) }); }
+    try{ await window.storage.set(CAL_KEY, JSON.stringify(calEvents)); }
     catch(e){ console.warn('Calendar save failed', e); }
   }
 
@@ -6348,7 +6320,7 @@ function initApp(){
   // ---------- Master Archive (admin only) ----------
   // The index (small: label, date, counts) lives under one key. Each
   // archive's data is stored separately, split into 40,000-character pieces
-  // because a single Google Sheets cell holds at most 50,000 characters.
+  // (kept from the old Sheets cell-size limit; harmless to keep chunking).
   const MASTER_ARCHIVE_KEY = 'kitchen-master-archives';
   const ARCH_DATA_PREFIX = 'kitchen-master-archive-data:';
   const ARCH_CHUNK = 40000;
@@ -6842,12 +6814,12 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
   renderCcpBoard();
   applyStaticAccessControl();
   (async function initFromSheet(){
-    // Pull the Google Sheet FIRST and wait for it, so the very first render
+    // Pull from Firestore FIRST and wait for it, so the very first render
     // already shows the real, shared data — not an empty or stale local
     // copy. This is what was missing before: the old sync call was wired to
     // an event that had already fired by the time this ran, so it silently
     // never executed.
-    await syncFromGoogleSheets();
+    await syncFromFirestore();
     await loadRecipes();
     await loadPlans();
     await loadPackages();
@@ -6865,54 +6837,35 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
     // focus, but never while someone is mid-edit on a form (so we don't
     // yank a half-filled recipe/plan/package out from under them).
     setInterval(()=>{
-      if(!editingId && !editingProdId && !editingPkgId) syncFromGoogleSheets();
+      if(!editingId && !editingProdId && !editingPkgId) syncFromFirestore();
     }, 45000);
     document.addEventListener('visibilitychange', ()=>{
       if(document.visibilityState === 'visible' && !editingId && !editingProdId && !editingPkgId){
-        syncFromGoogleSheets();
+        syncFromFirestore();
       }
     });
   })();
 }
 
 // =====================================================================
-// ONLINE / TEAM ACCESS SETUP (Google Sheets + Apps Script)
-// This now reuses the SAME Apps Script deployment as the recipes/inventory
-// database (GOOGLE_SHEET_URL, declared near the top of the previous
-// <script> block) for Master Archive snapshots and the Manage Access
-// on/off switches, via a small key-value API (get/set/delete/list) added
-// to Code.gs. Nothing to paste here anymore — just make sure the Apps
-// Script backend below has been redeployed with the updated Code.gs.
+// ONLINE / TEAM ACCESS SETUP (Firestore)
+// Master Archive snapshots and the Manage Access on/off switches use the
+// same small key-value API (get/set/delete/list) as the calendar, backed
+// by Firestore's "kv" collection (see window.firestoreAPI in the module
+// script above). Google Sheets/Apps Script is no longer used anywhere.
 // =====================================================================
-async function gasCall(action, payload){
-  const res = await fetch(GOOGLE_SHEET_URL, {
-    method: 'POST',
-    // text/plain avoids a CORS preflight that Apps Script doesn't handle well
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(Object.assign({ action: action }, payload || {}))
-  });
-  const text = await res.text();
-  try{
-    return JSON.parse(text);
-  }catch(e){
-    // Got something back that isn't JSON — usually means the Apps Script
-    // deployment needs to be redeployed, or the URL above is wrong.
-    throw new Error('BACKEND_UNREACHABLE');
-  }
-}
-
 window.storage = {
   async get(key){
-    return await gasCall('get', { key: key });
+    return await window.firestoreAPI.fsKvGet(key);
   },
   async set(key, value){
-    return await gasCall('set', { key: key, value: value });
+    return await window.firestoreAPI.fsKvSet(key, value);
   },
   async delete(key){
-    return await gasCall('delete', { key: key });
+    return await window.firestoreAPI.fsKvDelete(key);
   },
   async list(prefix){
-    return await gasCall('list', { prefix: prefix });
+    return await window.firestoreAPI.fsKvList(prefix);
   }
 };
 
@@ -7030,10 +6983,10 @@ async function checkAccess(){
   loginMsg.textContent = '';
   retryAccessBtn.style.display = 'none';
   try{
-    await gasCall('list', { prefix: '' });
+    await window.storage.list('');
     gateMessage.textContent = 'Connected. Log in as Admin/Chef 1/Chef 2, or leave blank to view only.';
   }catch(err){
-    showAccessError('We couldn\'t reach the Google Sheet database. Check your internet connection, or that the Apps Script (Code.gs) has been redeployed, then try again.');
+    showAccessError('We couldn\'t reach the Firestore database. Check your internet connection, then try again.');
   }
 }
 
