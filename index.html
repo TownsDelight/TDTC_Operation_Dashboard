@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kitchen Cost Rail — Commissary Operations</title>
+<title>Kitchen Operation Dashboard — Commissary Operations</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
@@ -1650,13 +1650,47 @@
   .inv-name-edit-actions .inv-cancel-name{ background:#fff; color:var(--ink); }
   .inv-name-edit-actions .inv-cancel-name:hover{ background:var(--surface-alt); }
   .inv-name-edit-err{ color:var(--danger); font-size:11px; margin-top:5px; min-height:14px; }
+
+  /* ---- Processing overlay + "data updated" banner (inventory cascade) ---- */
+  .sync-overlay{
+    position:fixed; inset:0; z-index:9000; background:rgba(20,22,19,.82);
+    display:none; align-items:center; justify-content:center; padding:20px;
+    backdrop-filter:blur(2px);
+  }
+  .sync-overlay.show{ display:flex; }
+  .sync-box{
+    background:#fff; color:#1B1E1A; border-radius:8px; padding:30px 34px; width:100%; max-width:400px;
+    text-align:center; box-shadow:0 18px 50px rgba(0,0,0,.45); font-family:'Space Grotesk',sans-serif;
+  }
+  .sync-spinner{
+    width:46px; height:46px; margin:0 auto 16px; border:4px solid #E4E1D8; border-top-color:var(--rust,#B14A2C);
+    border-radius:50%; animation:invspin .8s linear infinite;
+  }
+  .sync-box h3{ margin:0 0 6px; font-size:18px; }
+  .sync-box p{ margin:0; font-size:13.5px; color:#4A4D45; min-height:20px; }
+  .sync-bar{ height:6px; background:#E4E1D8; border-radius:3px; margin:16px 0 12px; overflow:hidden; }
+  .sync-bar span{ display:block; height:100%; width:0; background:var(--rust,#B14A2C); transition:width .35s ease; }
+  .sync-box .sync-note{ font-size:11.5px; color:#8A8D84; min-height:0; }
+  .sync-banner{
+    position:fixed; top:0; left:0; right:0; z-index:8500; display:none;
+    background:#FBF3D9; border-bottom:3px solid #E3B505; color:#3A2E00;
+    padding:12px 48px 12px 18px; font-family:'Space Grotesk',sans-serif; font-size:13.5px; line-height:1.5;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+  }
+  .sync-banner.show{ display:block; }
+  .sync-banner b{ font-weight:700; }
+  .sync-banner .sync-banner-close{
+    position:absolute; right:12px; top:8px; background:none; border:none; font-size:20px; line-height:1;
+    cursor:pointer; color:#3A2E00; padding:4px 8px;
+  }
+  .role-readonly-hide{ display:none !important; }
 </style>
 </head>
 <body>
 
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
-    <h1>Kitchen Cost Rail</h1>
+    <h1>Kitchen Operation Dashboard</h1>
     <p id="gateMessage">Connecting to your kitchen database…</p>
     <button type="button" id="retryAccessBtn" style="display:none;">Try again</button>
     <div class="login-msg" id="loginMsg"></div>
@@ -1805,6 +1839,19 @@
   </div>
 </div>
 
+<div class="sync-overlay" id="syncOverlay" role="alert" aria-live="assertive">
+  <div class="sync-box">
+    <div class="sync-spinner"></div>
+    <h3 id="syncTitle">Updating data…</h3>
+    <p id="syncStep">Please wait…</p>
+    <div class="sync-bar"><span id="syncBarFill"></span></div>
+    <p class="sync-note">Please don't close or refresh this page while processing.</p>
+  </div>
+</div>
+<div class="sync-banner" id="syncBanner" role="status">
+  <span id="syncBannerText"></span>
+  <button type="button" class="sync-banner-close" id="syncBannerClose" aria-label="Dismiss">×</button>
+</div>
 <div class="inv-loading-banner" id="invLoadingBanner"><span class="spin"></span><span id="invLoadingMsg">Saving…</span></div>
 <div class="wrap" id="appWrap" style="display:none;">
 
@@ -1816,7 +1863,7 @@
 
   <header class="rail">
     <div class="rail-title">
-      <h1>Kitchen Cost Rail</h1>
+      <h1>Kitchen Operation Dashboard</h1>
       <p>Recipe costing and ingredient procurement for the commissary kitchen line.</p>
     </div>
     <div class="rail-meta">
@@ -1825,7 +1872,7 @@
       Access: <span class="role-badge-pill" id="currentRoleBadge">—</span>
       <button class="print-btn" id="masterArchiveOpenBtn" type="button" style="margin-top:6px;display:none;">🗄 Master Archive</button>
       <button class="print-btn" id="manageAccessOpenBtn" type="button" style="margin-top:6px;display:none;">🔐 Manage Access</button>
-      <button class="print-btn" id="logoutBtn" type="button" style="margin-top:6px;">Refresh</button>
+      <button class="print-btn" id="logoutBtn" type="button" style="margin-top:6px;">LOGOUT</button>
     </div>
   </header>
 
@@ -2364,7 +2411,7 @@
     </div>
   </section>
 
-  <p class="footer-note">Data is shared through your team's Firestore database — Kitchen Cost Rail, Commissary Operations Dashboard.</p>
+  <p class="footer-note">Data is shared through your team's Firestore database — Kitchen Operation Dashboard, Commissary Operations.</p>
 </div>
 
 <script type="module">
@@ -2883,15 +2930,129 @@ function initApp(){
     return price;
   }
 
-  // Editing an ingredient's price in Inventory Status is meant to be the one
-  // place that price lives — so pushing a new price here recomputes every
-  // saved recipe that uses this ingredient (line cost, recipe total, and
-  // cost per pax), instead of leaving those recipes holding a stale snapshot.
-  // Packages already lock in a recipe's cost/pax at the moment they're saved
-  // or edited, same as before — this only keeps recipes themselves in sync.
+  // ---- Processing overlay + "all data updated" banner ----
+  let _processingShownAt = 0;
+  let _bannerTimer = null;
+  function showProcessing(title, step, pct){
+    _processingShownAt = Date.now();
+    document.getElementById('syncTitle').textContent = title || 'Updating data…';
+    setProcessingStep(step || 'Please wait…', pct || 5);
+    document.getElementById('syncOverlay').classList.add('show');
+  }
+  function setProcessingStep(step, pct){
+    const st = document.getElementById('syncStep');
+    const fill = document.getElementById('syncBarFill');
+    if(st) st.textContent = step;
+    if(fill && typeof pct === 'number') fill.style.width = pct + '%';
+  }
+  async function hideProcessing(){
+    // Keep the loader up long enough to be noticed, even on a fast save.
+    const wait = Math.max(0, 900 - (Date.now() - _processingShownAt));
+    setProcessingStep('Done.', 100);
+    if(wait) await new Promise(r => setTimeout(r, wait));
+    document.getElementById('syncOverlay').classList.remove('show');
+  }
+  function showUpdateBanner(html){
+    const b = document.getElementById('syncBanner');
+    document.getElementById('syncBannerText').innerHTML = html;
+    b.classList.add('show');
+    clearTimeout(_bannerTimer);
+    _bannerTimer = setTimeout(()=> b.classList.remove('show'), 25000);
+  }
+  document.getElementById('syncBannerClose').addEventListener('click', ()=>{
+    document.getElementById('syncBanner').classList.remove('show');
+  });
+
+  // Packages store a snapshot of each food item's recipe cost per pax. When a
+  // recipe's cost changes, rebuild those snapshots and every total derived
+  // from them (same formulas as the Package Cost Calculator's Save button).
+  function recalcPackagesFromRecipes(){
+    let changed = 0;
+    packages.forEach(pkg=>{
+      const items = pkg.foodItems || [];
+      if(!items.length) return;
+      let dirty = false;
+      const newItems = items.map(fi=>{
+        const rec = (fi.recipeId && recipes.find(r => r.id === fi.recipeId))
+                 || recipes.find(r => r.name === fi.description);
+        if(!rec) return fi;
+        const price = rec.costPerPax || 0;
+        const charged = price * MARKUP;
+        if(fi.description !== rec.name || Math.abs((fi.price||0) - price) > 1e-9 || Math.abs((fi.charged||0) - charged) > 1e-9) dirty = true;
+        return { ...fi, description: rec.name, recipeId: rec.id, price, charged };
+      });
+      if(!dirty) return;
+      const pax = pkg.pax || 0;
+      const mult = pax > 0 ? pax : 1;
+      const foodSubtotal = newItems.reduce((a,r)=>a+(r.price||0), 0);
+      const foodCharged = newItems.reduce((a,r)=>a+(r.charged||0), 0);
+      const serviceTotal = pkg.serviceTotal || 0;
+      const miscTotal = pkg.miscTotal || 0;
+      pkg.foodItems = newItems;
+      pkg.foodSubtotal = foodSubtotal;
+      pkg.foodCharged = foodCharged;
+      pkg.foodChargedTotal = foodCharged * mult;
+      pkg.rawFoodTotal = foodSubtotal * mult;
+      pkg.grandTotal = pkg.foodChargedTotal + serviceTotal + miscTotal;
+      pkg.pricePerPax = pax > 0 ? (foodCharged + (serviceTotal + miscTotal) / pax) : (foodCharged + serviceTotal + miscTotal);
+      pkg.updatedAt = new Date().toISOString();
+      changed++;
+    });
+    return changed;
+  }
+
+  // Production plans keep an estimated cost (batches × recipe total cost).
+  // Finished (Done) plans stay as historical records and are not touched.
+  function recalcPlansFromRecipes(){
+    let changed = 0;
+    plans.forEach(pl=>{
+      if(pl.validated) return;
+      const rec = recipes.find(r => r.id === pl.recipeId);
+      if(!rec) return;
+      const est = (pl.batches || 0) * (rec.totalCost || 0);
+      if(Math.abs((pl.estCost || 0) - est) > 0.005){ pl.estCost = est; changed++; }
+    });
+    return changed;
+  }
+
+  // Runs after recipes are updated: pushes the new costs into every saved
+  // package and unfinished production plan, saves them, and refreshes screens.
+  async function syncDependentData(){
+    setProcessingStep('Recalculating package prices per pax…', 55);
+    const pk = recalcPackagesFromRecipes();
+    if(pk) await persistPackages();
+    setProcessingStep('Updating production plan costs…', 78);
+    const pl = recalcPlansFromRecipes();
+    if(pl) await persistPlans();
+    setProcessingStep('Refreshing all screens…', 92);
+    if(typeof renderRecipeList === 'function') renderRecipeList();
+    if(typeof renderProcurement === 'function') renderProcurement();
+    if(typeof renderPackageList === 'function') renderPackageList();
+    if(typeof renderPlans === 'function') renderPlans();
+    if(typeof renderProductionList === 'function') renderProductionList();
+    if(typeof refreshFoodRecipeOptions === 'function') refreshFoodRecipeOptions();
+    if(typeof refreshRecipeSelect === 'function') refreshRecipeSelect();
+    if(typeof updatePackageSummary === 'function') updatePackageSummary();
+    return { packages: pk, plans: pl };
+  }
+
+  function updateSummaryHtml(headline, recipeCount, dep){
+    const parts = [
+      recipeCount + ' recipe card' + (recipeCount === 1 ? '' : 's'),
+      dep.packages + ' package' + (dep.packages === 1 ? '' : 's'),
+      dep.plans + ' production plan' + (dep.plans === 1 ? '' : 's')
+    ];
+    return '⚠ <b>All data is updated.</b> ' + headline + ' Updated: ' + parts.join(', ') +
+      '. Per-pax prices and totals were recomputed everywhere. Please review the Recipe Cards, Package Cost Calculator and Production Planning tabs.';
+  }
+
+  // Editing an ingredient's price in Inventory Status is the one place that
+  // price lives — so pushing a new price here recomputes every saved recipe
+  // that uses it, then flows into packages and production plans.
   async function propagateIngredientPriceChange(name, uom, newPrice){
     const key = ingredientKey(name, uom);
-    let touched = false;
+    let recipeCount = 0;
+    setProcessingStep('Updating saved recipe cards…', 25);
     recipes.forEach(r=>{
       let recipeChanged = false;
       (r.ingredients || []).forEach(ing=>{
@@ -2904,12 +3065,13 @@ function initApp(){
       if(recipeChanged){
         r.totalCost = (r.ingredients || []).reduce((s,i)=>s+(i.lineCost||0), 0);
         r.costPerPax = r.yieldVal > 0 ? r.totalCost / r.yieldVal : 0;
-        touched = true;
+        r.updatedAt = new Date().toISOString();
+        recipeCount++;
       }
     });
-    // persistRecipes() already cascades into every recipe-dependent view
-    // (recipe list, CCP board, procurement, package builder summary).
-    if(touched) await persistRecipes();
+    if(recipeCount) await persistRecipes();
+    const dep = await syncDependentData();
+    return { recipes: recipeCount, dep };
   }
 
   // ---------- Production stock commitments ----------
@@ -3103,6 +3265,7 @@ function initApp(){
   // referenced: the inventory item itself, every saved recipe's matching
   // ingredient line, and any production plan's committed-stock record (so
   // returning stock to the shelf later still finds the right item).
+  let _lastRenameRecipeCount = 0;
   async function renameIngredient(item, newName){
     const oldKey = item.key;
     const oldName = item.name;
@@ -3113,11 +3276,15 @@ function initApp(){
     item.name = newName;
     item.key = newKey;
     let recipesTouched = false;
+    let recipeCount = 0;
     recipes.forEach(r=>{
+      let hit = false;
       (r.ingredients || []).forEach(ing=>{
-        if(ingredientKey(ing.name, ing.uom) === oldKey){ ing.name = newName; recipesTouched = true; }
+        if(ingredientKey(ing.name, ing.uom) === oldKey){ ing.name = newName; recipesTouched = true; hit = true; }
       });
+      if(hit){ r.updatedAt = new Date().toISOString(); recipeCount++; }
     });
+    _lastRenameRecipeCount = recipeCount;
     plans.forEach(pl=>{
       (pl.committedIngredients || []).forEach(c=>{
         if(c.key === oldKey){ c.key = newKey; c.name = newName; }
@@ -3274,17 +3441,23 @@ function initApp(){
         errEl.textContent = '';
         if(!newName){ errEl.textContent = 'Enter a name.'; return; }
         if(newName === item.name){ card.querySelector('.inv-name-edit-row').style.display = 'none'; return; }
-        if(!window.confirm('Rename "' + item.name + '" to "' + newName + '"? This updates every saved recipe that uses it.')) return;
+        if(!window.confirm('Rename "' + item.name + '" to "' + newName + '"? This updates every saved recipe, package and production plan that uses it.')) return;
         btn.disabled = true;
-        showInvLoading('Renaming ingredient and updating recipes…');
+        showProcessing('Renaming ingredient…', 'Saving new name and updating recipes…', 10);
+        let dep = null, recipeCount = 0, failed = null;
         try{
           const err = await renameIngredient(item, newName);
-          if(err){ errEl.textContent = err; btn.disabled = false; hideInvLoading(); return; }
-        } finally {
-          hideInvLoading();
-        }
+          if(err){ failed = err; }
+          else {
+            recipeCount = _lastRenameRecipeCount;
+            dep = await syncDependentData();
+          }
+        } catch(ex){ console.error(ex); failed = 'Something went wrong while updating. Please try again.'; }
+        await hideProcessing();
+        if(failed){ errEl.textContent = failed; btn.disabled = false; return; }
         renderInventoryTable();
         renderProductionList();
+        showUpdateBanner(updateSummaryHtml('Ingredient renamed to “' + escapeHtml(newName) + '”.', recipeCount, dep));
       });
     });
 
@@ -3344,19 +3517,32 @@ function initApp(){
         const key = e.target.closest('.kanban-card').dataset.key;
         const item = inventory.find(i => i.key === key);
         if(!item) return;
+        const oldPrice = item.price || 0;
         const newPrice = parseFloat(e.target.value) || 0;
-        if(newPrice === (item.price || 0)) return;
-        showInvLoading('Saving price and updating recipes…');
+        if(newPrice === oldPrice) return;
+        if(!window.confirm('Change the unit price of "' + item.name + '" from ' + PHP(oldPrice) + ' to ' + PHP(newPrice) + '?\n\nThis updates every saved recipe, package and production plan that uses it, and recomputes the per-pax prices.')){
+          e.target.value = oldPrice;
+          return;
+        }
+        showProcessing('Updating price…', 'Saving new price to inventory…', 10);
+        let result = null;
         try{
           item.price = newPrice;
           await persistInventory();
-          // One same price, circulating everywhere it's used — update every
-          // saved recipe that uses this ingredient so costing stays accurate.
-          await propagateIngredientPriceChange(item.name, item.uom, newPrice);
-        } finally {
-          hideInvLoading();
+          result = await propagateIngredientPriceChange(item.name, item.uom, newPrice);
+          logStockEvent(item.name, item.uom, 'Unit price changed from ' + PHP(oldPrice) + ' to ' + PHP(newPrice));
+          await persistInventoryHistory();
+        } catch(ex){
+          console.error(ex);
         }
+        await hideProcessing();
         renderInventoryTable();
+        renderProductionList();
+        if(result){
+          showUpdateBanner(updateSummaryHtml('New price for “' + escapeHtml(item.name) + '”: ' + PHP(newPrice) + '.', result.recipes, result.dep));
+        } else {
+          showUpdateBanner('⚠ <b>The update did not finish.</b> Please check your connection and try the price change again.');
+        }
       });
     });
   }
@@ -3630,7 +3816,7 @@ function initApp(){
       </head>
       <body>
         ${bodyHtml}
-        <div class="stamp">Printed ${new Date().toLocaleString('en-PH')} · Kitchen Cost Rail</div>
+        <div class="stamp">Printed ${new Date().toLocaleString('en-PH')} · Kitchen Operation Dashboard</div>
       </body>
       </html>
     `);
@@ -5151,7 +5337,7 @@ function initApp(){
     const lines = planIngredientLines(plan);
     const body = `
       <h1>Production Batch Stub</h1>
-      <p class="print-sub">Kitchen Cost Rail · ${escapeHtml(plan.eventName)}</p>
+      <p class="print-sub">Kitchen Operation Dashboard · ${escapeHtml(plan.eventName)}</p>
 
       <table>
         <tr><th>Batch number</th><td><b style="font-size:17px;">#${escapeHtml(plan.batchNumber || '—')}</b></td></tr>
@@ -6322,6 +6508,15 @@ function initApp(){
 
     gateEl(document.getElementById('openInsertIngredientBtn'), canEdit(), 'Only Admin and Manager can add new ingredients to inventory.');
 
+    // Read-only levels (Assistant / Viewer): remove the input forms entirely and
+    // show only the saved lists (saved recipes, scheduled productions, saved packages).
+    ['#panel-builder', '#panel-production', '#panel-packages'].forEach(sel=>{
+      const grid = document.querySelector(sel + ' > .builder-grid');
+      if(grid) grid.classList.toggle('role-readonly-hide', !canCreate());
+    });
+    const insBtn = document.getElementById('openInsertIngredientBtn');
+    if(insBtn) insBtn.classList.toggle('role-readonly-hide', !canEdit());
+
     // Recipe name/category/yield + ingredient rows, production form, package form inputs
     if(!canCreate()){
       document.querySelectorAll('#panel-builder input, #panel-builder select, #panel-production input, #panel-production select, #panel-packages input, #panel-packages select').forEach(el=>{
@@ -6584,7 +6779,7 @@ td.num,th.num{text-align:right;white-space:nowrap;}
 .legend-warning{font-size:11px;color:#B14A2C;margin-top:6px;}
 @media print{body{background:#fff;color:#000;} .tabs,.pbtn,select{display:none;} .pane{display:block !important;} details{display:block;} details>*{display:block;}}
 </style></head><body><div class="wrap">
-<div class="bar"><div><h1>Kitchen Cost Rail — Archive<span class="badge">READ-ONLY</span></h1>
+<div class="bar"><div><h1>Kitchen Operation Dashboard — Archive<span class="badge">READ-ONLY</span></h1>
 <div class="sub">${escapeHtml(snapshot.label)} · saved ${escapeHtml(when)} · by ${escapeHtml(snapshot.createdBy||'—')}</div></div>
 <button class="pbtn" onclick="window.print()">🖨 Print</button></div>
 <div class="tabs"><button class="tab active" data-t="prod">Production Planning</button><button class="tab" data-t="pkg">Package Cost Calculator</button><button class="tab" data-t="disp">Dispatching</button></div>
@@ -6987,9 +7182,12 @@ async function showApp(){
 }
 
 function showAccessError(message){
-  gateMessage.textContent = 'Access check failed.';
-  loginMsg.textContent = message || '';
-  retryAccessBtn.style.display = 'inline-block';
+  // The pre-login connectivity ping is not a reliable signal (the app itself
+  // syncs with Firestore after login), so the error is kept out of the UI.
+  console.warn('Pre-login access check did not pass:', message);
+  gateMessage.textContent = 'Log in as Admin/Chef 1/Chef 2, or leave blank to view only.';
+  loginMsg.textContent = '';
+  retryAccessBtn.style.display = 'none';
 }
 
 async function checkAccess(){
