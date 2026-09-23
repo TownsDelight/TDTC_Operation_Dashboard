@@ -2487,6 +2487,20 @@
 // and only database for everything: recipes, inventory, packages,
 // production plans, inventory history, calendar, master archive, and
 // access settings.
+//
+// The Firestore connection is set up in a <script type="module"> block
+// above, which loads and runs AFTER this plain <script> block (that's
+// how modules work in a browser). So anything here that needs
+// window.firestoreAPI must wait for it to exist first — fsAPI() below
+// does that wait, instead of assuming it's already there.
+function fsAPI(){
+  return new Promise((resolve)=>{
+    (function poll(){
+      if(window.firestoreAPI) resolve(window.firestoreAPI);
+      else setTimeout(poll, 30);
+    })();
+  });
+}
 
 function initApp(){
   const PHP = n => '₱' + (Number(n)||0).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -2558,11 +2572,11 @@ function initApp(){
 
   async function fetchServerSnapshot(){
     const [recipes, inventory, packages, production_plans, inventory_history] = await Promise.all([
-      window.firestoreAPI.fsGetCollection('recipes', 'id'),
-      window.firestoreAPI.fsGetCollection('inventory', 'key'),
-      window.firestoreAPI.fsGetCollection('packages', 'id'),
-      window.firestoreAPI.fsGetCollection('production_plans', 'id'),
-      window.firestoreAPI.fsGetCollection('inventory_history', 'id')
+      (await fsAPI()).fsGetCollection('recipes', 'id'),
+      (await fsAPI()).fsGetCollection('inventory', 'key'),
+      (await fsAPI()).fsGetCollection('packages', 'id'),
+      (await fsAPI()).fsGetCollection('production_plans', 'id'),
+      (await fsAPI()).fsGetCollection('inventory_history', 'id')
     ]);
     return { recipes, inventory, packages, production_plans, inventory_history };
   }
@@ -2638,7 +2652,7 @@ function initApp(){
       }catch(e){ /* offline — save what we have locally instead */ }
       lastSyncedRecipes = cloneArr(recipes);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
-      await window.firestoreAPI.fsReplaceCollection('recipes', recipes, 'id');
+      await (await fsAPI()).fsReplaceCollection('recipes', recipes, 'id');
       renderRecipeList();
       renderProcurement();
     }catch(e){ console.error('Storage error', e); }
@@ -2663,7 +2677,7 @@ function initApp(){
       }catch(e){ /* offline */ }
       lastSyncedPlans = cloneArr(plans);
       localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
-      await window.firestoreAPI.fsReplaceCollection('production_plans', plans, 'id');
+      await (await fsAPI()).fsReplaceCollection('production_plans', plans, 'id');
       if (typeof renderPlans === 'function') renderPlans();
     }catch(e){ console.error('Storage error', e); }
   }
@@ -2687,7 +2701,7 @@ function initApp(){
       }catch(e){ /* offline */ }
       lastSyncedPackages = cloneArr(packages);
       localStorage.setItem(PACKAGES_KEY, JSON.stringify(packages));
-      await window.firestoreAPI.fsReplaceCollection('packages', packages, 'id');
+      await (await fsAPI()).fsReplaceCollection('packages', packages, 'id');
       renderPackageList();
     }catch(e){ console.error('Storage error', e); }
   }
@@ -2712,7 +2726,7 @@ function initApp(){
       }catch(e){ /* offline */ }
       lastSyncedInventory = cloneArr(inventory);
       localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
-      await window.firestoreAPI.fsReplaceCollection('inventory', inventory, 'key');
+      await (await fsAPI()).fsReplaceCollection('inventory', inventory, 'key');
     }catch(e){ console.error('Storage error', e); }
   }
 
@@ -2754,7 +2768,7 @@ function initApp(){
   async function persistInventoryHistory(){
     try{
       localStorage.setItem(INV_HIST_KEY, JSON.stringify(inventoryHistory));
-      await window.firestoreAPI.fsReplaceCollection('inventory_history', inventoryHistory, 'id');
+      await (await fsAPI()).fsReplaceCollection('inventory_history', inventoryHistory, 'id');
       syncedHistoryIds = new Set(inventoryHistory.map(h=>h.id).filter(Boolean));
     }catch(e){ console.error('Storage error', e); }
   }
@@ -6856,16 +6870,16 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
 // =====================================================================
 window.storage = {
   async get(key){
-    return await window.firestoreAPI.fsKvGet(key);
+    return await (await fsAPI()).fsKvGet(key);
   },
   async set(key, value){
-    return await window.firestoreAPI.fsKvSet(key, value);
+    return await (await fsAPI()).fsKvSet(key, value);
   },
   async delete(key){
-    return await window.firestoreAPI.fsKvDelete(key);
+    return await (await fsAPI()).fsKvDelete(key);
   },
   async list(prefix){
-    return await window.firestoreAPI.fsKvList(prefix);
+    return await (await fsAPI()).fsKvList(prefix);
   }
 };
 
