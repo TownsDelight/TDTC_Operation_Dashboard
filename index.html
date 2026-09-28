@@ -260,10 +260,11 @@
   .ing-status-note.found{color:var(--herb-dark);}
   .ing-status-note.notfound{color:var(--danger);}
   .f-price[readonly]{background:var(--surface-alt); color:var(--ink-soft); cursor:not-allowed;}
+  .f-uom:disabled{background:var(--surface-alt); color:var(--ink-soft); cursor:not-allowed; opacity:1;}
 
   .subrecipe-row{
     display:grid;
-    grid-template-columns:1.6fr 0.9fr 0.9fr 0.9fr 30px;
+    grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 0.9fr 30px;
     gap:8px;
     align-items:end;
     padding:10px 0;
@@ -2116,12 +2117,28 @@
             </div>
           </div>
 
-          <div class="field-row" style="grid-template-columns:1fr;max-width:220px;">
+          <div class="field-row" style="grid-template-columns:1fr 1fr 1fr;max-width:600px;">
             <div>
               <label for="recipeYield">Yield (pax)</label>
               <input type="number" id="recipeYield" min="1" step="1" placeholder="e.g. 10">
             </div>
+            <div>
+              <label for="recipeOutputQty">Batch makes (override)</label>
+              <input type="number" id="recipeOutputQty" min="0" step="any" placeholder="e.g. 4.3">
+            </div>
+            <div>
+              <label for="recipeOutputUom">Unit</label>
+              <select id="recipeOutputUom">
+                <option value="">—</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="L">L</option>
+                <option value="mL">mL</option>
+                <option value="pcs">pcs</option>
+              </select>
+            </div>
           </div>
+          <p class="ing-status-note" style="margin:-6px 0 4px;">Optional. The batch total (kg / L) is worked out automatically from the ingredients. Fill this in only if the real output differs (e.g. after cooking loss).</p>
 
           <p class="section-label" style="margin-top:22px;">INGREDIENTS</p>
           <div class="headcols">
@@ -2135,11 +2152,12 @@
           <div id="ingredientRows"></div>
           <button class="add-ingredient-btn" id="addIngredientBtn" type="button">+ Add ingredient</button>
 
-          <p class="section-label" style="margin-top:22px;">COMPONENT RECIPES <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-soft);">— optional, insert a saved recipe as a sub-component. Servings match this recipe's yield automatically.</span></p>
-          <div class="headcols" style="grid-template-columns:1.6fr 0.9fr 0.9fr 0.9fr 30px;">
+          <p class="section-label" style="margin-top:22px;">COMPONENT RECIPES <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-soft);">— optional, insert a saved recipe as a sub-component. Use "pax" for the full batch (matches this recipe's yield), or pick a unit (e.g. L) to use only a specific amount.</span></p>
+          <div class="headcols" style="grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 0.9fr 30px;">
             <span>Recipe</span>
-            <span>Servings (= yield)</span>
-            <span>Cost / pax</span>
+            <span>Qty used</span>
+            <span>Unit</span>
+            <span>Cost / unit</span>
             <span>Line cost</span>
             <span></span>
           </div>
@@ -3107,6 +3125,39 @@ function initApp(){
     return ingTotal + subTotal;
   }
 
+  // A component can be used either as a full batch in "pax", or by a specific
+  // amount (e.g. 0.2 L) of the component's batch output. Everything downstream
+  // (cost, stock, production) works in "pax equivalent", so an amount is
+  // converted here: amount / (what the batch makes) x (batch yield in pax).
+  // What a recipe's batch produces, worked out from its ingredients (including
+  // any nested component recipes): weights are added up in kg, volumes in L,
+  // treating 1 L ~ 1 kg (fine for sauces, batters, drinks). Pieces are not
+  // added. If the chef typed a manual "Batch makes", that overrides this.
+  function subOutputOptions(sub){
+    if(!sub) return [];
+    if(sub.outputQty > 0 && sub.outputUom) return [{ uom: sub.outputUom, qty: sub.outputQty }];
+    let mass = 0, vol = 0;
+    getExpandedIngredients(sub, 1).forEach(i=>{
+      const q = i.qty || 0;
+      if(i.uom === 'kg') mass += q;
+      else if(i.uom === 'g') mass += q/1000;
+      else if(i.uom === 'L') vol += q;
+      else if(i.uom === 'mL') vol += q/1000;
+    });
+    const total = mass + vol;
+    if(total <= 0) return [];
+    if(mass > 0 && vol > 0) return [{ uom:'kg', qty: total }, { uom:'L', qty: total }];
+    return [{ uom: vol > 0 ? 'L' : 'kg', qty: total }];
+  }
+
+  function subPaxEquivalent(sr, sub){
+    if(sr && sr.mode === 'amount' && sub && sub.yieldVal > 0){
+      const opt = subOutputOptions(sub).find(o => o.uom === sr.qtyUom);
+      if(opt && opt.qty > 0) return ((sr.qtyUsed || 0) / opt.qty) * sub.yieldVal;
+    }
+    return (sr && sr.paxNeeded) || 0;
+  }
+
   // True if `recipe` uses `targetId` as a component, directly or through a
   // chain of components — used to keep the component picker from letting a
   // recipe include itself, directly or in a loop.
@@ -3137,7 +3188,7 @@ function initApp(){
     (recipe.subRecipes || []).forEach(sr=>{
       const sub = recipes.find(r => r.id === sr.recipeId);
       if(!sub || !sub.yieldVal) return;
-      const subMultiplier = multiplier * ((sr.paxNeeded || 0) / sub.yieldVal);
+      const subMultiplier = multiplier * (subPaxEquivalent(sr, sub) / sub.yieldVal);
       out.push(...getExpandedIngredients(sub, subMultiplier, seen));
     });
     return out;
@@ -3175,7 +3226,7 @@ function initApp(){
     (recipe.subRecipes||[]).forEach(sr=>{
       const sub = recipes.find(r=>r.id===sr.recipeId);
       if(!sub || !sub.yieldVal) return;
-      const subMultiplier = multiplier * ((sr.paxNeeded||0) / sub.yieldVal);
+      const subMultiplier = multiplier * (subPaxEquivalent(sr, sub) / sub.yieldVal);
       sections.push(...getIngredientSections(sub, subMultiplier, seen));
     });
     return sections;
@@ -3195,8 +3246,10 @@ function initApp(){
         if(sr.recipeId !== changedId) return;
         const sub = recipes.find(x => x.id === changedId);
         const newCostPerPax = sub ? (sub.costPerPax || 0) : 0;
-        const newLineCost = (sr.paxNeeded || 0) * newCostPerPax;
-        if(sr.costPerPax !== newCostPerPax || sr.lineCost !== newLineCost){
+        const newPax = subPaxEquivalent(sr, sub);
+        const newLineCost = newPax * newCostPerPax;
+        if(sr.costPerPax !== newCostPerPax || sr.lineCost !== newLineCost || sr.paxNeeded !== newPax){
+          sr.paxNeeded = newPax;
           sr.costPerPax = newCostPerPax;
           sr.lineCost = newLineCost;
           changed = true;
@@ -4016,15 +4069,67 @@ function initApp(){
     const priceInput = row.querySelector('.f-price');
     const uomSelect = row.querySelector('.f-uom');
 
+    // Inventory items are identified by name + UOM. These helpers keep a recipe
+    // row tied to the SAME inventory item, so changing the UOM (kg -> L) can't
+    // silently create a duplicate item.
+    function inventoryMatchesByName(){
+      const val = nameInput.value.trim().toLowerCase();
+      if(!val) return [];
+      return (inventory || []).filter(it => it.name && it.name.trim().toLowerCase() === val);
+    }
+
+    function lockUomToInventory(item){
+      if(Array.from(uomSelect.options).some(o => o.value === item.uom)) uomSelect.value = item.uom;
+      uomSelect.disabled = true;
+      uomSelect.title = 'Locked to the Inventory unit (' + item.uom + '). To use a different unit, add that version in Inventory first.';
+      const price = parseFloat(item.price) || 0;
+      if(price > 0){
+        priceInput.value = price;
+        priceInput.readOnly = true;
+        priceInput.title = 'Auto-filled from Inventory Status — update the price there to change it.';
+      }
+    }
+
+    function unlockUom(){
+      uomSelect.disabled = false;
+      uomSelect.title = '';
+    }
+
+    // Exact name typed/picked: if the name exists in Inventory under exactly
+    // one UOM, lock this row to it. If it exists under several UOMs, leave the
+    // UOM open but only accept one that exists (checked in the note + on save).
+    function applyInventoryLock(){
+      const matches = inventoryMatchesByName();
+      if(matches.length === 1){
+        lockUomToInventory(matches[0]);
+      } else {
+        unlockUom();
+        if(matches.length > 1){
+          const cur = matches.find(m => m.uom === uomSelect.value);
+          if(cur && (parseFloat(cur.price) || 0) > 0){
+            priceInput.value = cur.price;
+            priceInput.readOnly = true;
+            priceInput.title = 'Auto-filled from Inventory Status — update the price there to change it.';
+          }
+        }
+      }
+    }
+
     function updateStatusNote(){
       const val = nameInput.value.trim();
       if(!val){ statusNote.textContent = ''; statusNote.className = 'ing-status-note'; return; }
-      const exact = (inventory || []).find(it => it.name && it.name.toLowerCase() === val.toLowerCase());
-      if(exact){
-        statusNote.textContent = 'In inventory · ' + exact.uom + (exact.price ? ' · ' + PHP(exact.price) : '');
+      const matches = inventoryMatchesByName();
+      if(!matches.length){
+        statusNote.textContent = 'Not found in inventory — enter qty, UOM & price manually.';
+        statusNote.className = 'ing-status-note notfound';
+        return;
+      }
+      const cur = matches.find(m => m.uom === uomSelect.value);
+      if(cur){
+        statusNote.textContent = 'In inventory · ' + cur.uom + (cur.price ? ' · ' + PHP(cur.price) : '');
         statusNote.className = 'ing-status-note found';
       } else {
-        statusNote.textContent = 'Not found in inventory — enter qty, UOM & price manually.';
+        statusNote.textContent = 'In inventory as ' + matches.map(m => m.uom).join(' / ') + ' only — not as ' + uomSelect.value + '. Pick an existing unit or add that unit in Inventory first.';
         statusNote.className = 'ing-status-note notfound';
       }
     }
@@ -4053,11 +4158,22 @@ function initApp(){
       // Any manual edit invalidates a previous auto-fill lock.
       priceInput.readOnly = false;
       priceInput.title = '';
+      unlockUom();
       renderSuggestions();
     });
     nameInput.addEventListener('focus', renderSuggestions);
     nameInput.addEventListener('blur', ()=>{
-      setTimeout(()=>{ suggestList.style.display = 'none'; }, 150);
+      setTimeout(()=>{
+        suggestList.style.display = 'none';
+        applyInventoryLock();
+        updateStatusNote();
+        updateSummary();
+      }, 150);
+    });
+    uomSelect.addEventListener('change', ()=>{
+      applyInventoryLock();
+      updateStatusNote();
+      updateSummary();
     });
     suggestList.addEventListener('mousedown', (e)=>{
       const item = e.target.closest('.ing-suggest-item');
@@ -4075,13 +4191,15 @@ function initApp(){
         priceInput.readOnly = false;
         priceInput.title = '';
       }
+      // Lock the UOM when this name exists under only one unit (no duplicates).
+      applyInventoryLock();
       suggestList.style.display = 'none';
       updateStatusNote();
       updateSummary();
       row.querySelector('.f-qty').focus();
     });
 
-    if(data.name) updateStatusNote();
+    if(data.name){ applyInventoryLock(); updateStatusNote(); }
 
     updateSummary();
   }
@@ -4099,6 +4217,29 @@ function initApp(){
     return `<option value="">Select recipe…</option>` + options;
   }
 
+  function subUnitOptionsHtml(sub, selected){
+    let h = `<option value="pax" ${!selected||selected==='pax'?'selected':''}>pax</option>`;
+    subOutputOptions(sub).forEach(o=>{
+      h += `<option value="${escapeHtml(o.uom)}" ${selected===o.uom?'selected':''}>${escapeHtml(o.uom)}</option>`;
+    });
+    return h;
+  }
+
+  // Keeps the Unit dropdown in step with the chosen recipe: it always offers
+  // "pax", plus the recipe's own batch unit (L, kg, pcs...) if it has one.
+  function syncSubRow(row, prefill){
+    const recipeId = row.querySelector('.f-sub-recipe').value;
+    if(row.dataset.subId === recipeId && !prefill) return;
+    const sub = recipes.find(r => r.id === recipeId);
+    const unitSel = row.querySelector('.f-sub-unit');
+    const qtyInp = row.querySelector('.f-sub-qty');
+    const wantAmt = prefill ? prefill.mode === 'amount' : false;
+    unitSel.innerHTML = subUnitOptionsHtml(sub, wantAmt ? prefill.qtyUom : 'pax');
+    if(prefill && wantAmt) qtyInp.value = prefill.qtyUsed;
+    else if(row.dataset.subId !== recipeId) qtyInp.value = '';
+    row.dataset.subId = recipeId;
+  }
+
   function addSubRecipeRow(data){
     data = data || {};
     const id = 'sub-row-' + (subRowIdCounter++);
@@ -4110,15 +4251,26 @@ function initApp(){
         <span class="mini-label">Recipe</span>
         <select class="f-sub-recipe">${subRecipeOptionsHtml(data.recipeId)}</select>
       </div>
-      <div class="sub-pax-display line-cost">— pax</div>
+      <div>
+        <span class="mini-label">Qty used</span>
+        <input type="number" class="f-sub-qty" min="0" step="any" placeholder="0">
+      </div>
+      <div>
+        <span class="mini-label">Unit</span>
+        <select class="f-sub-unit"></select>
+      </div>
       <div class="sub-cost-per-pax line-cost">₱0.00</div>
       <div class="sub-line-cost line-cost">₱0.00</div>
       <button type="button" class="row-remove" title="Remove component">×</button>
     `;
     subRecipeRowsContainer.appendChild(row);
+    syncSubRow(row, data);
 
-    row.querySelectorAll('select').forEach(el=>{
-      el.addEventListener('input', updateSummary);
+    row.querySelectorAll('select, input').forEach(el=>{
+      el.addEventListener('input', ()=>{
+        if(el.classList.contains('f-sub-recipe')) syncSubRow(row);
+        updateSummary();
+      });
     });
     row.querySelector('.row-remove').addEventListener('click', ()=>{
       row.remove();
@@ -4130,24 +4282,46 @@ function initApp(){
 
   document.getElementById('addSubRecipeBtn').addEventListener('click', ()=>addSubRecipeRow());
 
-  // A component's "pax needed" is never typed in — it always equals the
-  // master recipe's own yield (pax), so the two are always serving the same
-  // headcount. Reading #recipeYield live here means it recalculates the
-  // instant the master recipe's yield changes, with no separate input to
-  // keep in sync.
+  // "pax" mode = full batch, always equal to this recipe's yield (as before).
+  // Amount mode = the chef types how much of the component is used (e.g. 0.2 L);
+  // that is converted to a pax equivalent so cost, stock and production all
+  // use the real amount instead of the whole batch.
   function getSubRecipeRowsData(){
     const yieldVal = parseFloat(document.getElementById('recipeYield').value) || 0;
     return Array.from(subRecipeRowsContainer.querySelectorAll('.subrecipe-row')).map(row=>{
       const recipeId = row.querySelector('.f-sub-recipe').value;
       const sub = recipes.find(r => r.id === recipeId);
-      const paxNeeded = recipeId ? yieldVal : 0;
+      const qtyInp = row.querySelector('.f-sub-qty');
+      const unitSel = row.querySelector('.f-sub-unit');
       const costPerPax = sub ? (sub.costPerPax || 0) : 0;
+      const outOpt = sub ? subOutputOptions(sub).find(o => o.uom === unitSel.value) : null;
+      const amountMode = !!(sub && outOpt && outOpt.qty > 0);
+      let paxNeeded = 0, qtyUsed = 0, qtyUom = '', unitCost = costPerPax, unitLabel = 'pax';
+
+      if(recipeId && amountMode){
+        qtyInp.readOnly = false;
+        qtyUsed = parseFloat(qtyInp.value) || 0;
+        qtyUom = outOpt.uom;
+        unitLabel = qtyUom;
+        paxNeeded = (qtyUsed / outOpt.qty) * (sub.yieldVal || 0);
+        unitCost = (costPerPax * (sub.yieldVal || 0)) / outOpt.qty;
+      } else if(recipeId){
+        qtyInp.readOnly = true;
+        qtyUsed = yieldVal;
+        paxNeeded = yieldVal;
+        qtyInp.value = yieldVal || '';
+      } else {
+        qtyInp.readOnly = true;
+        qtyInp.value = '';
+      }
       const lineCost = paxNeeded * costPerPax;
-      row.querySelector('.sub-pax-display').textContent = recipeId ? (paxNeeded + ' pax') : '— pax';
-      row.querySelector('.sub-cost-per-pax').textContent = PHP(costPerPax);
+      row.querySelector('.sub-cost-per-pax').textContent = PHP(unitCost) + ' / ' + unitLabel;
       row.querySelector('.sub-line-cost').textContent = PHP(lineCost);
       return {
-        recipeId, name: sub ? sub.name : '', paxNeeded, costPerPax, lineCost,
+        recipeId, name: sub ? sub.name : '',
+        mode: amountMode ? 'amount' : 'pax',
+        qtyUsed, qtyUom,
+        paxNeeded, costPerPax, lineCost,
         yieldValAtLink: sub ? sub.yieldVal : 0
       };
     });
@@ -4364,13 +4538,14 @@ function initApp(){
       `;
     }).join('');
     const subRowsHtml = subRows.map(r=>{
-      const qtyPerPax = r.paxNeeded / yieldVal;
+      const isAmt = r.mode === 'amount';
+      const qtyPerPax = (isAmt ? r.qtyUsed : r.paxNeeded) / yieldVal;
       const pricePerPax = r.lineCost / yieldVal;
       return `
         <tr>
           <td class="ing-name" title="${escapeHtml(r.name)} (component recipe)">${escapeHtml(r.name)}<span class="comp-badge">component</span></td>
           <td class="num">${qtyPerPax.toLocaleString('en-PH',{maximumFractionDigits:3})}</td>
-          <td>pax</td>
+          <td>${isAmt ? escapeHtml(r.qtyUom) : 'pax'}</td>
           <td class="num">${PHP(pricePerPax)}</td>
         </tr>
       `;
@@ -4388,6 +4563,8 @@ function initApp(){
     document.getElementById('recipeName').value = '';
     document.getElementById('recipeCategory').value = '';
     document.getElementById('recipeYield').value = '';
+    document.getElementById('recipeOutputQty').value = '';
+    document.getElementById('recipeOutputUom').value = '';
     rowsContainer.innerHTML = '';
     addIngredientRow();
     subRecipeRowsContainer.innerHTML = '';
@@ -4399,13 +4576,16 @@ function initApp(){
     document.getElementById('recipeName').value = recipe.name;
     document.getElementById('recipeCategory').value = recipe.category;
     document.getElementById('recipeYield').value = recipe.yieldVal;
+    document.getElementById('recipeOutputQty').value = recipe.outputQty || '';
+    document.getElementById('recipeOutputUom').value = recipe.outputUom || '';
     rowsContainer.innerHTML = '';
     recipe.ingredients.forEach(ing => addIngredientRow({
       name: ing.name, qty: ing.qty, uom: ing.uom, unitPrice: ing.unitPrice
     }));
     subRecipeRowsContainer.innerHTML = '';
     (recipe.subRecipes || []).forEach(sr => addSubRecipeRow({
-      recipeId: sr.recipeId, paxNeeded: sr.paxNeeded
+      recipeId: sr.recipeId, paxNeeded: sr.paxNeeded,
+      mode: sr.mode, qtyUsed: sr.qtyUsed
     }));
     updateSummary();
 
@@ -4441,6 +4621,8 @@ function initApp(){
     const name = document.getElementById('recipeName').value.trim();
     const category = document.getElementById('recipeCategory').value;
     const yieldVal = parseFloat(document.getElementById('recipeYield').value) || 0;
+    const outputQty = parseFloat(document.getElementById('recipeOutputQty').value) || 0;
+    const outputUom = outputQty > 0 ? document.getElementById('recipeOutputUom').value : '';
     const rows = getIngredientRowsData().filter(r=>r.name && r.qty > 0);
     const subRecipeRows = getSubRecipeRowsData().filter(r=>r.recipeId && r.paxNeeded > 0);
 
@@ -4454,6 +4636,18 @@ function initApp(){
     }
     if(!category){
       formMsg.textContent = 'Select a category so this recipe shows up in the Recipe Manual.';
+      formMsg.className = 'form-msg err';
+      return;
+    }
+    // An ingredient that already exists in Inventory must keep a unit that exists
+    // there too — otherwise saving would create a duplicate item (same name, other UOM).
+    const uomConflict = rows.find(r => {
+      const same = inventory.filter(i => i.name && i.name.trim().toLowerCase() === r.name.trim().toLowerCase());
+      return same.length > 0 && !same.some(i => i.key === ingredientKey(r.name, r.uom));
+    });
+    if(uomConflict){
+      const have = inventory.filter(i => i.name && i.name.trim().toLowerCase() === uomConflict.name.trim().toLowerCase()).map(i => i.uom).join(' / ');
+      formMsg.textContent = '"' + uomConflict.name + '" is in Inventory as ' + have + ', not ' + uomConflict.uom + '. Use the Inventory unit, or add the ' + uomConflict.uom + ' version in Inventory first, so no duplicate is created.';
       formMsg.className = 'form-msg err';
       return;
     }
@@ -4475,7 +4669,7 @@ function initApp(){
       if(idx !== -1){
         recipes[idx] = {
           ...recipes[idx],
-          name, category, yieldVal,
+          name, category, yieldVal, outputQty, outputUom,
           ingredients: rows,
           subRecipes: subRecipeRows,
           totalCost: total,
@@ -4495,7 +4689,7 @@ function initApp(){
     } else {
       const recipe = {
         id: 'r-' + Date.now(),
-        name, category, yieldVal,
+        name, category, yieldVal, outputQty, outputUom,
         ingredients: rows,
         subRecipes: subRecipeRows,
         totalCost: total,
@@ -4572,7 +4766,7 @@ function initApp(){
     const subSummaryRows = (r.subRecipes||[]).map(sr => `
       <tr>
         <td>${escapeHtml(sr.name)}</td>
-        <td>${sr.paxNeeded} pax</td>
+        <td>${sr.mode === 'amount' ? (sr.qtyUsed + ' ' + escapeHtml(sr.qtyUom)) : (sr.paxNeeded + ' pax')}</td>
         <td>${PHP(sr.costPerPax)}</td>
         <td>${PHP(sr.lineCost)}</td>
       </tr>
