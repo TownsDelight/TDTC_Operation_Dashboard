@@ -1602,6 +1602,19 @@
   .hold-group.no-ing > summary{background:#F4D9D2;color:#8A2E1A;}
   .hold-group.for-rel > summary{background:#F5E8B9;color:#6B5200;}
 
+  /* ---------- Multi-recipe production plan ---------- */
+  .prod-line{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0 0 12px;background:var(--surface);}
+  .prod-line.locked{background:var(--surface-alt);}
+  .prod-line-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;}
+  .alloc-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px;align-items:center;margin-bottom:6px;}
+  .alloc-row input{margin:0;}
+  .alloc-x{background:none;border:1px solid var(--line);border-radius:4px;cursor:pointer;color:var(--rust);padding:6px 8px;}
+  .mini-btn{background:none;border:1px dashed var(--line);border-radius:4px;font-size:11.5px;padding:5px 10px;cursor:pointer;color:var(--steel);}
+  .alloc-list{font-size:11.5px;line-height:1.45;margin:6px 0;padding:6px 8px;border-left:3px solid var(--herb,#6E8B63);background:rgba(110,139,99,.10);border-radius:0 4px 4px 0;}
+  .alloc-list .multi{font-weight:700;color:var(--rust);}
+  .plan-progress{font-size:11px;color:var(--steel);margin-top:4px;}
+  .cal-chip.dispatch{background:#2F7D6B;}
+  .cal-swatch.dispatch{background:#2F7D6B;}
   /* ---------- Calendar module ---------- */
   .cal-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
   .cal-month-switch{display:flex;align-items:center;gap:10px;}
@@ -2324,43 +2337,8 @@
       <div>
         <div class="card ticket">
           <p class="section-label">PRODUCTION PLAN — NEW ENTRY</p>
-
+          <p class="recipe-hint">One plan per production category and day. Add every recipe this category will cook, and under each recipe list the events, places and pax it is for.</p>
           <div class="field-row">
-            <div>
-              <label for="prodEvent">Event</label>
-              <input type="text" id="prodEvent" placeholder="e.g. Delgado Wedding">
-            </div>
-            <div>
-              <label for="prodEventDate">Event date</label>
-              <input type="date" id="prodEventDate">
-            </div>
-          </div>
-
-          <div class="field-row">
-            <div>
-              <label for="prodRecipe">Recipe</label>
-              <select id="prodRecipe"><option value="">Select a saved recipe…</option></select>
-            </div>
-            <div>
-              <label for="prodPax">Pax needed</label>
-              <input type="number" id="prodPax" min="1" step="1" placeholder="e.g. 150">
-            </div>
-          </div>
-
-          <div class="field-row">
-            <div>
-              <label for="prodCommi">Commis in charge</label>
-              <input type="text" id="prodCommi" placeholder="e.g. Commis 2 — Aldrin P.">
-            </div>
-          </div>
-          <p class="recipe-hint" id="recipeHint"></p>
-
-          <p class="section-label" style="margin-top:20px;">BATCH SCHEDULE</p>
-          <div class="field-row">
-            <div>
-              <label for="prodBatchDate">Batch production date</label>
-              <input type="date" id="prodBatchDate">
-            </div>
             <div>
               <label for="prodCategory">Production category</label>
               <select id="prodCategory">
@@ -2375,26 +2353,27 @@
                 <option value="Event Production">Event Production</option>
               </select>
             </div>
+            <div>
+              <label for="prodBatchDate">Batch production date</label>
+              <input type="date" id="prodBatchDate">
+            </div>
           </div>
-          <p class="recipe-hint" id="batchNumberHint">Batch #: will be assigned when saved</p>
-
-          <p class="section-label" style="margin-top:20px;">TIMING</p>
           <div class="field-row">
             <div>
-              <label for="prodStart">Start time</label>
-              <input type="time" id="prodStart">
-            </div>
-            <div>
-              <label for="prodEnd">Target finish time</label>
-              <input type="time" id="prodEnd">
+              <label for="prodCommi">Commis in charge</label>
+              <input type="text" id="prodCommi" placeholder="e.g. Commis 2 — Aldrin P.">
             </div>
           </div>
+          <p class="recipe-hint" id="batchNumberHint">Batch #: will be assigned when saved (shared by every recipe in this plan)</p>
 
-          <div id="editingProdBanner" class="editing-banner" style="display:none;">
-            Editing <strong id="editingProdName"></strong> — saving will update this plan.
+          <p class="section-label" style="margin-top:20px;">RECIPES IN THIS PLAN</p>
+          <div id="prodLines"></div>
+          <button class="add-ingredient-btn" id="addProdLineBtn" type="button">+ Add recipe</button>
+
+          <div id="editingProdBanner" class="editing-banner" style="display:none;margin-top:14px;">
+            Editing batch <strong id="editingProdName"></strong> — recipes already released or done are locked; the rest can be changed.
             <button type="button" id="cancelProdEditBtn">Cancel</button>
           </div>
-
           <button class="save-btn" id="saveProdBtn" type="button">Schedule production</button>
           <div class="form-msg" id="prodFormMsg"></div>
         </div>
@@ -2402,19 +2381,11 @@
 
       <div>
         <div class="summary-card">
-          <p class="section-label">RUN ESTIMATE</p>
-          <div class="summary-line"><span>Recipe yield</span><span id="prodYieldDisplay">— pax</span></div>
-          <div class="summary-line"><span>Batches needed</span><span id="prodBatches">0</span></div>
-          <div class="summary-line"><span>Cost per pax</span><span id="prodCostPerPax">₱0.00</span></div>
+          <p class="section-label">RUN ESTIMATE — PER RECIPE</p>
+          <div id="prodSummary"></div>
           <div class="cost-per-pax">
-            <span class="caption">ESTIMATED PRODUCTION COST</span>
+            <span class="caption">ESTIMATED PLAN COST</span>
             <div class="amount" id="prodEstCost">₱0.00</div>
-          </div>
-
-          <div class="avail-check">
-            <p class="section-label" style="color:#9C9F92;margin-top:18px;margin-bottom:8px;">INGREDIENT AVAILABILITY</p>
-            <div class="avail-badge" id="prodAvailBadge">—</div>
-            <div id="prodShortageList" class="shortage-list"></div>
           </div>
         </div>
       </div>
@@ -2508,8 +2479,8 @@
     </div>
     <div class="cal-grid" id="calGrid"></div>
     <p class="recipe-hint" style="margin-top:14px;">
-      Production schedule dates appear automatically in red the moment a batch is released and proceeded
-      in Production Planning. Food tasting and event entries are saved to the shared Supabase database.
+      Production schedule dates appear automatically in red the moment a recipe of a batch is released and proceeded
+      in Production Planning — one entry per production category and status, not per recipe. Event dispatching is handled in Production Planning and Dispatching. Food tasting and event entries are saved to the shared Supabase database.
     </p>
   </section>
 
@@ -2932,6 +2903,7 @@ function initApp(){
       inventory = db.inventory;
       packages = db.packages;
       plans = db.production_plans;
+      normalizePlans();
       lastSyncedRecipes = cloneArr(recipes);
       lastSyncedInventory = cloneArr(inventory);
       lastSyncedPackages = cloneArr(packages);
@@ -3005,6 +2977,7 @@ function initApp(){
         const res = localStorage.getItem(PLANS_KEY);
         plans = res ? JSON.parse(res) : [];
       }catch(e){ plans = []; }
+      normalizePlans();
     }
     if (typeof renderPlans === 'function') renderPlans();
   }
@@ -4892,9 +4865,10 @@ function initApp(){
       ? ingredientSectionsHtml(getIngredientSections(recipe, p.batches), { showPrice: false, mainLabel: 'INGREDIENTS NEEDED' })
       : '<p>Recipe not found.</p>';
     const statusLabel = p.validated ? 'Done' : (p.stockCommitted ? 'Processing (GO)' : 'Hold (NO-GO)');
-    openViewModal(p.eventName, `
+    openViewModal(p.recipeName || p.eventName, `
       <p><span class="cat-tag">${escapeHtml(p.category||'Uncategorized')}</span> · Batch #${escapeHtml(p.batchNumber||'—')} · Status: ${escapeHtml(statusLabel)}</p>
       <p style="font-size:12.5px;color:var(--ink-soft);">Recipe: ${escapeHtml(p.recipeName||'—')} · ${p.pax} pax · ${p.batches} batch${p.batches===1?'':'es'} · batch date ${formatDateDisplay(p.batchDate)}</p>
+      ${allocsHtml(p)}
       ${sectionsHtml}
       <p style="margin-top:10px;font-weight:600;">Estimated cost: ${PHP(p.estCost)}</p>
     `);
@@ -5349,246 +5323,277 @@ function initApp(){
   }
 
   // ---------- Tab 3: Production Planning ----------
-  const prodRecipeEl = document.getElementById('prodRecipe');
-  const prodPaxEl = document.getElementById('prodPax');
-  const recipeHintEl = document.getElementById('recipeHint');
+  // A production plan is now ONE per production category + batch date. It holds
+  // several recipe lines; every line has its own events/places/pax, its own
+  // timing, and its own Hold -> Processing -> Done life. In storage each line is
+  // still one record (so stock, release, validate and dispatch keep working),
+  // but all lines of a plan share groupId + batchNumber.
+  const recipeHintEl = null;
   const prodFormMsg = document.getElementById('prodFormMsg');
   const editingProdBanner = document.getElementById('editingProdBanner');
   const editingProdNameEl = document.getElementById('editingProdName');
   const saveProdBtn = document.getElementById('saveProdBtn');
   const filterStationEl = document.getElementById('filterStation');
   const productionBoardEl = document.getElementById('productionBoard');
+  const prodLinesEl = document.getElementById('prodLines');
+  let prodLines = [];            // form state: [{key,id,recipeId,startTime,endTime,locked,allocs:[]}]
+  let editingGroupId = null;
+  let lineSeq = 0;
 
-  function refreshRecipeSelect(){
-    const current = prodRecipeEl.value;
-    prodRecipeEl.innerHTML = '<option value="">Select a saved recipe…</option>' +
-      recipes.map(r => `<option value="${r.id}">${escapeHtml(r.name)} (${escapeHtml(r.category)})</option>`).join('');
-    if(recipes.some(r=>r.id === current)) prodRecipeEl.value = current;
+  function newAlloc(){ return { eventName:'', place:'', eventDate:'', pax:'' }; }
+  function newLine(){ return { key:'l'+(++lineSeq), id:'', recipeId:'', startTime:'', endTime:'', locked:false, allocs:[newAlloc()] }; }
+  function lineTotalPax(ln){ return ln.allocs.reduce((s,a)=> s + (parseFloat(a.pax)||0), 0); }
+  function planEventSummary(al){ return al.length === 1 ? al[0].eventName : al[0].eventName + ' +' + (al.length-1) + ' more'; }
+  function allocText(a){ return (a.eventName||'—') + (a.place ? ' @ ' + a.place : '') + (a.eventDate ? ' · ' + formatDateDisplay(a.eventDate) : ''); }
+  function allocsHtml(p){
+    const al = p.allocations || [];
+    return `<div class="alloc-list">${al.length > 1 ? '<div class="multi">Used for ' + al.length + ' events — ' + p.pax + ' pax total</div>' : ''}` +
+      al.map(a => `📍 ${escapeHtml(allocText(a))} — <b>${a.pax} pax</b>`).join('<br>') + '</div>';
+  }
+  function planSiblings(p){ return plans.filter(x => x.groupId === p.groupId); }
+  function progressText(p){
+    const s = planSiblings(p);
+    if(s.length < 2) return '';
+    return `Plan progress (Batch #${p.batchNumber || '—'}): ${s.filter(x=>x.released).length}/${s.length} released · ${s.filter(x=>x.validated).length}/${s.length} done`;
+  }
+  // Old single-recipe plans become a plan with one line and one event.
+  function normalizePlans(){
+    plans.forEach(p=>{
+      if(!p.groupId) p.groupId = p.id;
+      if(!Array.isArray(p.allocations) || !p.allocations.length){
+        p.allocations = [{ eventName:p.eventName||'', place:p.eventPlace||'', eventDate:p.eventDate||'',
+          pax:p.pax||0, dispatchedAt:p.dispatchedAt||'', dispatchedPax:p.dispatchedPax||0 }];
+      }
+    });
+  }
+
+  function recipeOptionsHtml(sel){
+    return '<option value="">Select a saved recipe…</option>' +
+      recipes.map(r => `<option value="${r.id}" ${r.id===sel?'selected':''}>${escapeHtml(r.name)} (${escapeHtml(r.category)})</option>`).join('');
+  }
+  function lineCalc(ln){
+    const recipe = recipes.find(r => r.id === ln.recipeId);
+    const pax = lineTotalPax(ln);
+    if(!recipe || pax <= 0) return { recipe, pax, batches:0, cost:0 };
+    const batches = Math.ceil(pax / recipe.yieldVal);
+    return { recipe, pax, batches, cost: batches * recipe.totalCost };
+  }
+
+  function renderProdLines(){
+    prodLinesEl.innerHTML = prodLines.map((ln, i) => {
+      if(ln.locked){
+        const rec = plans.find(p => p.id === ln.id);
+        return `<div class="prod-line locked" data-lk="${ln.key}">
+          <div class="prod-line-head"><b>Recipe ${i+1}: ${escapeHtml(rec ? rec.recipeName : '')}</b>
+          <span class="recipe-hint">🔒 ${rec && rec.validated ? 'Done' : 'Released'} — locked</span></div>
+          ${rec ? allocsHtml(rec) : ''}</div>`;
+      }
+      return `<div class="prod-line" data-lk="${ln.key}">
+        <div class="prod-line-head"><b>Recipe ${i+1}</b>
+          ${prodLines.filter(x=>!x.locked).length > 1 ? '<button type="button" class="alloc-x" data-act="rm-line">Remove recipe</button>' : ''}</div>
+        <select data-f="recipe">${recipeOptionsHtml(ln.recipeId)}</select>
+        <p class="recipe-hint" data-hint></p>
+        <div class="field-row">
+          <div><label>Start time (this recipe)</label><input type="time" data-f="start" value="${ln.startTime}"></div>
+          <div><label>Target finish time</label><input type="time" data-f="end" value="${ln.endTime}"></div>
+        </div>
+        <p class="section-label" style="margin:10px 0 6px;">EVENTS USING THIS RECIPE</p>
+        ${ln.allocs.map((a, j) => `<div class="alloc-row" data-ai="${j}">
+          <input type="text" data-a="eventName" placeholder="Event name" value="${escapeHtml(a.eventName)}">
+          <input type="text" data-a="place" placeholder="Event place" value="${escapeHtml(a.place)}">
+          <input type="date" data-a="eventDate" title="Event date" value="${escapeHtml(a.eventDate)}">
+          <input type="number" data-a="pax" min="1" step="1" placeholder="Pax" value="${escapeHtml(String(a.pax))}">
+          ${ln.allocs.length > 1 ? '<button type="button" class="alloc-x" data-act="rm-alloc" title="Remove event">✕</button>' : ''}
+        </div>`).join('')}
+        <button type="button" class="mini-btn" data-act="add-alloc">+ Add event</button>
+        <p class="recipe-hint" data-total style="margin-top:8px;"></p>
+      </div>`;
+    }).join('');
     updateRunEstimate();
   }
 
   function updateRunEstimate(){
-    const recipe = recipes.find(r => r.id === prodRecipeEl.value);
-    const pax = parseFloat(prodPaxEl.value) || 0;
-
-    if(!recipe){
-      recipeHintEl.textContent = '';
-      document.getElementById('prodYieldDisplay').textContent = '— pax';
-      document.getElementById('prodBatches').textContent = '0';
-      document.getElementById('prodCostPerPax').textContent = '₱0.00';
-      document.getElementById('prodEstCost').innerHTML = '₱0.00';
-      renderAvailabilityCheck(null, 0);
-      return;
-    }
-
-    recipeHintEl.textContent = 'Yield: ' + recipe.yieldVal + ' pax · Cost/pax: ' + PHP(recipe.costPerPax);
-    const batches = pax > 0 ? Math.ceil(pax / recipe.yieldVal) : 0;
-    const estCost = batches * recipe.totalCost;
-
-    document.getElementById('prodYieldDisplay').textContent = recipe.yieldVal + ' pax';
-    document.getElementById('prodBatches').textContent = batches;
-    document.getElementById('prodCostPerPax').textContent = PHP(recipe.costPerPax);
-    document.getElementById('prodEstCost').innerHTML = PHP(estCost);
-
-    renderAvailabilityCheck(recipe, batches);
+    let totalCost = 0, html = '';
+    prodLines.forEach((ln, i) => {
+      if(ln.locked) return;
+      const c = lineCalc(ln);
+      totalCost += c.cost;
+      const el = prodLinesEl.querySelector(`[data-lk="${ln.key}"]`);
+      if(el){
+        el.querySelector('[data-hint]').textContent = c.recipe ? 'Yield: ' + c.recipe.yieldVal + ' pax · Cost/pax: ' + PHP(c.recipe.costPerPax) : '';
+        el.querySelector('[data-total]').innerHTML = c.recipe
+          ? `Total <b>${c.pax} pax</b> from ${ln.allocs.length} event${ln.allocs.length===1?'':'s'} → <b>${c.batches} batch${c.batches===1?'':'es'}</b> · ${PHP(c.cost)}`
+          : '';
+      }
+      let avail = '<div class="avail-badge neutral">—</div>';
+      if(c.recipe && c.batches > 0){
+        const { status, shortages } = computeAvailability(c.recipe, c.batches, null);
+        avail = status === 'go'
+          ? '<div class="avail-badge go">✅ GO — all ingredients available</div>'
+          : '<div class="avail-badge nogo">⚠ NO-GO — short on ingredients</div><div class="shortage-list">' + shortages.map(s => `
+            <div class="shortage-row"><span>${escapeHtml(s.name)}</span><span>need ${s.required.toLocaleString('en-PH',{maximumFractionDigits:2})} ${escapeHtml(s.uom)}, have ${s.available.toLocaleString('en-PH',{maximumFractionDigits:2})}</span></div>`).join('') + '</div>';
+      }
+      html += `<div style="margin-bottom:12px;"><div class="summary-line"><span>${i+1}. ${escapeHtml(c.recipe ? c.recipe.name : 'No recipe yet')}</span><span>${c.pax} pax · ${c.batches} batch${c.batches===1?'':'es'}</span></div>${avail}</div>`;
+    });
+    document.getElementById('prodSummary').innerHTML = html || '<div class="recipe-hint">Add a recipe to see the estimate.</div>';
+    document.getElementById('prodEstCost').innerHTML = PHP(totalCost);
   }
 
-  function renderAvailabilityCheck(recipe, batches){
-    const badge = document.getElementById('prodAvailBadge');
-    const list = document.getElementById('prodShortageList');
-    if(!recipe || batches <= 0){
-      badge.textContent = '—';
-      badge.className = 'avail-badge neutral';
-      list.innerHTML = '';
-      return;
-    }
-    const { status, shortages } = computeAvailability(recipe, batches, editingProdId);
-    if(status === 'go'){
-      badge.textContent = '✅ GO — all ingredients available';
-      badge.className = 'avail-badge go';
-      list.innerHTML = '';
-    } else {
-      badge.textContent = '⚠ NO-GO — short on ingredients';
-      badge.className = 'avail-badge nogo';
-      list.innerHTML = shortages.map(s => `
-        <div class="shortage-row">
-          <span>${escapeHtml(s.name)}</span>
-          <span>need ${s.required.toLocaleString('en-PH',{maximumFractionDigits:2})} ${escapeHtml(s.uom)}, have ${s.available.toLocaleString('en-PH',{maximumFractionDigits:2})}</span>
-        </div>
-      `).join('');
-    }
-  }
+  function refreshRecipeSelect(){ renderProdLines(); }   // recipes list changed elsewhere
 
-  prodRecipeEl.addEventListener('change', updateRunEstimate);
-  prodPaxEl.addEventListener('input', updateRunEstimate);
+  prodLinesEl.addEventListener('input', e=>{
+    const lineEl = e.target.closest('.prod-line'); if(!lineEl) return;
+    const ln = prodLines.find(x => x.key === lineEl.dataset.lk); if(!ln) return;
+    const f = e.target.dataset.f, a = e.target.dataset.a;
+    if(f === 'start') ln.startTime = e.target.value;
+    if(f === 'end') ln.endTime = e.target.value;
+    if(a){ ln.allocs[+e.target.closest('.alloc-row').dataset.ai][a] = e.target.value; }
+    updateRunEstimate();
+  });
+  prodLinesEl.addEventListener('change', e=>{
+    const lineEl = e.target.closest('.prod-line'); if(!lineEl) return;
+    const ln = prodLines.find(x => x.key === lineEl.dataset.lk); if(!ln) return;
+    if(e.target.dataset.f === 'recipe'){
+      const dup = prodLines.find(x => x !== ln && x.recipeId && x.recipeId === e.target.value);
+      if(dup){
+        e.target.value = ln.recipeId;
+        prodFormMsg.textContent = 'That recipe is already in this plan — add another event under it instead of a second line, so the pax are totalled.';
+        prodFormMsg.className = 'form-msg err';
+        return;
+      }
+      prodFormMsg.textContent = ''; ln.recipeId = e.target.value;
+      updateRunEstimate();
+    }
+  });
+  prodLinesEl.addEventListener('click', e=>{
+    const act = e.target.dataset.act; if(!act) return;
+    const lineEl = e.target.closest('.prod-line');
+    const ln = prodLines.find(x => x.key === lineEl.dataset.lk); if(!ln) return;
+    if(act === 'add-alloc') ln.allocs.push(newAlloc());
+    if(act === 'rm-alloc') ln.allocs.splice(+e.target.closest('.alloc-row').dataset.ai, 1);
+    if(act === 'rm-line') prodLines = prodLines.filter(x => x !== ln);
+    renderProdLines();
+  });
+  document.getElementById('addProdLineBtn').addEventListener('click', ()=>{ prodLines.push(newLine()); renderProdLines(); });
 
   function resetProdForm(){
-    document.getElementById('prodEvent').value = '';
-    document.getElementById('prodEventDate').value = '';
-    prodRecipeEl.value = '';
-    prodPaxEl.value = '';
     document.getElementById('prodBatchDate').value = '';
     document.getElementById('prodCategory').value = '';
-    document.getElementById('prodStart').value = '';
-    document.getElementById('prodEnd').value = '';
     document.getElementById('prodCommi').value = '';
-    document.getElementById('batchNumberHint').textContent = 'Batch #: will be assigned when saved';
-    updateRunEstimate();
+    document.getElementById('batchNumberHint').textContent = 'Batch #: will be assigned when saved (shared by every recipe in this plan)';
+    prodLines = [newLine()];
+    renderProdLines();
   }
 
   function enterProdEditMode(plan){
-    editingProdId = plan.id;
-    document.getElementById('prodEvent').value = plan.eventName;
-    document.getElementById('prodEventDate').value = plan.eventDate;
-    prodRecipeEl.value = plan.recipeId;
-    prodPaxEl.value = plan.pax;
+    editingGroupId = plan.groupId; editingProdId = plan.groupId;
+    const group = planSiblings(plan);
     document.getElementById('prodBatchDate').value = plan.batchDate;
     document.getElementById('prodCategory').value = plan.category || '';
-    document.getElementById('prodStart').value = plan.startTime;
-    document.getElementById('prodEnd').value = plan.endTime;
     document.getElementById('prodCommi').value = plan.commi || '';
-    document.getElementById('batchNumberHint').textContent = 'Batch #: ' + (plan.batchNumber || '—') + ' (permanent, does not change)';
-    updateRunEstimate();
-
+    document.getElementById('batchNumberHint').textContent = 'Batch #: ' + (plan.batchNumber || '—') + ' (permanent, shared by every recipe in this plan)';
+    prodLines = group.map(p => ({
+      key:'l'+(++lineSeq), id:p.id, recipeId:p.recipeId, startTime:p.startTime||'', endTime:p.endTime||'',
+      locked: !!(p.released || p.stockCommitted || p.validated),
+      allocs:(p.allocations||[]).map(a => ({ ...a, pax:a.pax }))
+    }));
+    renderProdLines();
     editingProdBanner.style.display = 'flex';
-    editingProdNameEl.textContent = plan.eventName;
+    editingProdNameEl.textContent = '#' + (plan.batchNumber || '—');
     saveProdBtn.textContent = 'Update production plan';
-    prodFormMsg.textContent = '';
-    prodFormMsg.className = 'form-msg';
-
+    prodFormMsg.textContent = ''; prodFormMsg.className = 'form-msg';
     document.querySelector('.tab-btn[data-tab="production"]').click();
-    document.getElementById('prodEvent').scrollIntoView({behavior:'smooth', block:'start'});
+    document.getElementById('prodCategory').scrollIntoView({behavior:'smooth', block:'start'});
   }
 
   function exitProdEditMode(){
-    editingProdId = null;
+    editingGroupId = null; editingProdId = null;
     editingProdBanner.style.display = 'none';
     saveProdBtn.textContent = 'Schedule production';
   }
 
   document.getElementById('cancelProdEditBtn').addEventListener('click', ()=>{
-    exitProdEditMode();
-    resetProdForm();
-    prodFormMsg.textContent = 'Edit cancelled.';
-    prodFormMsg.className = 'form-msg';
+    exitProdEditMode(); resetProdForm();
+    prodFormMsg.textContent = 'Edit cancelled.'; prodFormMsg.className = 'form-msg';
   });
 
   saveProdBtn.addEventListener('click', async ()=>{
-    if(saveProdBtn.disabled) return; // ignore extra clicks while a save is in flight
+    if(saveProdBtn.disabled) return;
     saveProdBtn.disabled = true;
-    const _saveProdBtnLabel = saveProdBtn.textContent;
+    const _label = saveProdBtn.textContent;
     saveProdBtn.textContent = 'Saving…';
+    const fail = m => { prodFormMsg.textContent = m; prodFormMsg.className = 'form-msg err'; };
     try{
-    const eventName = document.getElementById('prodEvent').value.trim();
-    const eventDate = document.getElementById('prodEventDate').value;
-    const recipeId = prodRecipeEl.value;
-    const pax = parseFloat(prodPaxEl.value) || 0;
-    const batchDate = document.getElementById('prodBatchDate').value;
-    const category = document.getElementById('prodCategory').value;
-    const startTime = document.getElementById('prodStart').value;
-    const endTime = document.getElementById('prodEnd').value;
-    const commi = document.getElementById('prodCommi').value.trim();
-
-    prodFormMsg.className = 'form-msg';
-    prodFormMsg.textContent = '';
-
-    if(!eventName){
-      prodFormMsg.textContent = 'Add an event name.';
-      prodFormMsg.className = 'form-msg err';
-      return;
-    }
-    if(!recipeId){
-      prodFormMsg.textContent = 'Select which recipe this production is for.';
-      prodFormMsg.className = 'form-msg err';
-      return;
-    }
-    if(pax <= 0){
-      prodFormMsg.textContent = 'Enter the number of pax needed for the event.';
-      prodFormMsg.className = 'form-msg err';
-      return;
-    }
-    if(!batchDate){
-      prodFormMsg.textContent = 'Set the batch production date.';
-      prodFormMsg.className = 'form-msg err';
-      return;
-    }
-    if(!commi){
-      prodFormMsg.textContent = 'Enter the commi in charge of this production.';
-      prodFormMsg.className = 'form-msg err';
-      return;
-    }
-    if(!category){
-      prodFormMsg.textContent = 'Select a production category.';
-      prodFormMsg.className = 'form-msg err';
-      return;
-    }
-
-    const recipe = recipes.find(r => r.id === recipeId);
-    const batches = Math.ceil(pax / recipe.yieldVal);
-    const estCost = batches * recipe.totalCost;
-
-    if(editingProdId){
-      const idx = plans.findIndex(p => p.id === editingProdId);
-      if(idx !== -1){
-        const plan = plans[idx];
-        // Release whatever stock this plan had committed BEFORE applying the
-        // edit, so the new requirement is checked against true available stock.
-        if(!plan.validated) releasePlanStock(plan);
-        plans[idx] = {
-          ...plan,
-          eventName, eventDate, recipeId, recipeName: recipe.name,
-          pax, batchDate, category, startTime, endTime, commi,
-          batches, estCost,
-          released: false, releasedAt: '',
-          updatedAt: new Date().toISOString()
-        };
-        if(!plans[idx].validated){
-          const committed = tryCommitPlan(plans[idx]);
-          if(!committed) logHoldShortages(recipe, plans[idx]);
+      const batchDate = document.getElementById('prodBatchDate').value;
+      const category = document.getElementById('prodCategory').value;
+      const commi = document.getElementById('prodCommi').value.trim();
+      prodFormMsg.className = 'form-msg'; prodFormMsg.textContent = '';
+      if(!category) return fail('Select a production category.');
+      if(!batchDate) return fail('Set the batch production date.');
+      if(!commi) return fail('Enter the commis in charge of this production.');
+      const open = prodLines.filter(l => !l.locked);
+      if(open.length === 0 && !editingGroupId) return fail('Add at least one recipe.');
+      for(let i=0;i<open.length;i++){
+        const ln = open[i], n = 'Recipe ' + (prodLines.indexOf(ln)+1);
+        if(!ln.recipeId) return fail(n + ': select a recipe.');
+        for(const a of ln.allocs){
+          if(!a.eventName.trim()) return fail(n + ': every event needs a name.');
+          if(!a.place.trim()) return fail(n + ': every event needs a place.');
+          if(!a.eventDate) return fail(n + ': every event needs a date.');
+          if(!(parseFloat(a.pax) > 0)) return fail(n + ': every event needs its pax.');
         }
       }
-      await persistInventory();
-      await persistPlans();
-      await syncProductionCommitments();
-      renderProductionList();
-      prodFormMsg.textContent = 'Updated production plan for "' + eventName + '".';
-      prodFormMsg.className = 'form-msg ok';
-      exitProdEditMode();
-      resetProdForm();
-    } else {
-      batchCounter += 1;
-      await persistBatchCounter();
-      const createdAt = new Date();
-      const batchNumber = formatBatchNumber(createdAt, batchCounter);
-      const plan = {
-        id: 'p-' + Date.now(),
-        batchNumber,
-        eventName, eventDate, recipeId, recipeName: recipe.name,
-        pax, batchDate, category, startTime, endTime, commi,
-        batches, estCost,
-        released: false, releasedAt: '',
-        stockCommitted: false,
-        committedIngredients: [],
-        savedAt: createdAt.toISOString()
+      const base = { category, batchDate, commi };
+      const mk = (ln, extra) => {
+        const recipe = recipes.find(r => r.id === ln.recipeId);
+        const allocations = ln.allocs.map(a => ({
+          eventName:a.eventName.trim(), place:a.place.trim(), eventDate:a.eventDate, pax:parseFloat(a.pax),
+          dispatchedAt:a.dispatchedAt||'', dispatchedPax:a.dispatchedPax||0
+        })).sort((x,y)=> x.eventDate.localeCompare(y.eventDate));
+        const pax = allocations.reduce((s,a)=> s + a.pax, 0);
+        const batches = Math.ceil(pax / recipe.yieldVal);
+        return { ...extra, ...base, recipeId:recipe.id, recipeName:recipe.name, allocations, pax, batches,
+          estCost: batches * recipe.totalCost, startTime:ln.startTime, endTime:ln.endTime,
+          eventName: planEventSummary(allocations), eventDate: allocations[0].eventDate, eventPlace: allocations[0].place };
       };
-      plans.push(plan);
-      // Immediately take the ingredients out of stock if there's enough —
-      // this is what makes a batch "Processing" instead of "Hold".
-      const committed = tryCommitPlan(plan);
-      if(!committed) logHoldShortages(recipe, plan);
-      await persistInventory();
-      await persistPlans();
+      let groupId, batchNumber, msg;
+      if(editingGroupId){
+        const keepIds = new Set(prodLines.map(l => l.id).filter(Boolean));
+        const old = plans.filter(p => p.groupId === editingGroupId);
+        groupId = editingGroupId; batchNumber = old[0] && old[0].batchNumber;
+        old.filter(p => !keepIds.has(p.id) && !(p.released || p.stockCommitted || p.validated)).forEach(p=>{ plans = plans.filter(x => x.id !== p.id); });
+        open.forEach(ln=>{
+          if(ln.id){
+            const idx = plans.findIndex(p => p.id === ln.id);
+            if(idx !== -1) plans[idx] = mk(ln, { ...plans[idx], updatedAt:new Date().toISOString() });
+          }
+        });
+        msg = 'Updated production plan Batch #' + batchNumber + '.';
+      } else {
+        batchCounter += 1; await persistBatchCounter();
+        groupId = 'g-' + Date.now(); batchNumber = formatBatchNumber(new Date(), batchCounter);
+        msg = 'Scheduled batch #' + batchNumber + ' with ' + open.length + ' recipe' + (open.length===1?'':'s') + ' — each stays on Hold until its ingredients are released.';
+      }
+      open.filter(l => !l.id).forEach((ln, i)=>{
+        const p = mk(ln, { id:'p-' + Date.now() + '-' + i + '-' + Math.floor(Math.random()*1000), groupId, batchNumber,
+          released:false, releasedAt:'', stockCommitted:false, committedIngredients:[], savedAt:new Date().toISOString() });
+        plans.push(p);
+      });
+      plans.filter(p => p.groupId === groupId && !p.stockCommitted && !p.validated).forEach(p=>{
+        const r = recipes.find(x => x.id === p.recipeId);
+        if(r && !p.released) logHoldShortages(r, p);
+      });
+      await persistInventory(); await persistPlans();
       await syncProductionCommitments();
-      renderProductionList();
-      prodFormMsg.textContent = 'Scheduled "' + eventName + '" as batch #' + batchNumber + ' — on Hold until the ingredients are released.';
-      prodFormMsg.className = 'form-msg ok';
-      resetProdForm();
-    }
+      renderProductionList(); renderCalendar();
+      prodFormMsg.textContent = msg; prodFormMsg.className = 'form-msg ok';
+      exitProdEditMode(); resetProdForm();
     } finally {
       saveProdBtn.disabled = false;
-      saveProdBtn.textContent = _saveProdBtnLabel;
+      saveProdBtn.textContent = editingGroupId ? 'Update production plan' : 'Schedule production';
     }
   });
+  resetProdForm();
 
   function refreshStationFilter(){
     const stations = [...new Set(plans.map(p=>p.category).filter(Boolean))].sort();
@@ -5649,7 +5654,7 @@ function initApp(){
           ${groups[cat].map(p => `
             <div class="tv-tile">
               <div class="tv-batch-num">#${escapeHtml(p.batchNumber || '—')}</div>
-              <div class="tv-batch-meta">${escapeHtml(p.eventName)}</div>
+              <div class="tv-batch-meta">${escapeHtml(p.recipeName)}</div>
               <div class="tv-batch-cat">${escapeHtml(p.category || '')}</div>
             </div>
           `).join('')}
@@ -5665,19 +5670,11 @@ function initApp(){
     return lines.some(l => l.onHand < l.required);
   }
 
-  function renderProductionCard(p){
+  function renderProductionLine(p){
     const isReleased = !!(p.released && p.stockCommitted);
     const holdShort = (!p.validated && !p.stockCommitted) ? planHasShortage(p) : false;
     const timing = (p.startTime ? formatTimeDisplay(p.startTime) : '—') +
       (p.endTime ? ' – ' + formatTimeDisplay(p.endTime) : '');
-    const statusTag = p.validated
-      ? '<span class="status-tag" style="background:var(--surface-alt);color:var(--steel);">DONE</span>'
-      : (p.stockCommitted
-        ? '<span class="status-tag go">GO — stock reserved</span>'
-        : (holdShort
-          ? '<span class="status-tag nogo">NO-GO — no ingredients</span>'
-          : '<span class="status-tag nogo">NO-GO — for releasing</span>'));
-
     let actionsHtml = `<button type="button" data-action="view-prod">View</button>`;
     if(p.validated){
       actionsHtml += `<button type="button" data-action="stub-prod">Print stub</button>` +
@@ -5692,22 +5689,46 @@ function initApp(){
         (canEdit() ? `<button type="button" data-action="edit-prod">Edit</button>` : '') +
         (canDelete() ? `<button type="button" class="del" data-action="delete-prod">Delete</button>` : '');
     }
-
     return `
-      <div class="kanban-card" data-id="${p.id}">
-        <span class="batch-tag">Batch #${escapeHtml(p.batchNumber || '—')}</span>
-        ${statusTag}
-        <span class="station-tag">${escapeHtml(p.category || 'Uncategorized')}</span>
-        <div class="rname">${escapeHtml(p.eventName)}</div>
+      <div class="kanban-line" data-id="${p.id}">
+        <div class="rname">${escapeHtml(p.recipeName)}</div>
         <div class="rmeta">
-          ${escapeHtml(p.recipeName)} · ${p.pax} pax needed · ${p.batches} batch${p.batches===1?'':'es'}<br>
-          commi: ${escapeHtml(p.commi || '—')}<br>
-          batch date ${formatDateDisplay(p.batchDate)} · ${timing}
+          ${p.pax} pax total · ${p.batches} batch${p.batches===1?'':'es'}${(p.startTime || p.endTime) ? ' · ' + timing : ''}
+          ${allocsHtml(p)}
         </div>
         <div class="rprice">${PHP(p.estCost)} est. cost</div>
         <div class="kanban-actions">${actionsHtml}</div>
-      </div>
-    `;
+      </div>`;
+  }
+
+  // One card per plan (batch number) per status. Recipes of the same plan that
+  // share a status sit together; once one moves on, it leaves for its own column.
+  function renderProductionGroup(items){
+    const p = items[0];
+    const holdShort = (!p.validated && !p.stockCommitted) ? planHasShortage(p) : false;
+    const statusTag = p.validated
+      ? '<span class="status-tag" style="background:var(--surface-alt);color:var(--steel);">DONE</span>'
+      : (p.stockCommitted
+        ? '<span class="status-tag go">GO — stock reserved</span>'
+        : (holdShort
+          ? '<span class="status-tag nogo">NO-GO — no ingredients</span>'
+          : '<span class="status-tag nogo">NO-GO — for releasing</span>'));
+    return `
+      <div class="kanban-card">
+        <span class="batch-tag">Batch #${escapeHtml(p.batchNumber || '—')}</span>
+        ${statusTag}
+        <span class="station-tag">${escapeHtml(p.category || 'Uncategorized')}</span>
+        <div class="rmeta">
+          ${items.length} recipe${items.length===1?'':'s'} · commis: ${escapeHtml(p.commi || '—')} · batch date ${formatDateDisplay(p.batchDate)}
+          <div class="plan-progress">${escapeHtml(progressText(p))}</div>
+        </div>
+        ${items.map(renderProductionLine).join('<hr style="border:0;border-top:1px dashed var(--line);margin:10px 0;">')}
+      </div>`;
+  }
+  function renderCards(list){
+    const m = new Map();
+    list.forEach(p => { const k = p.groupId || p.id; if(!m.has(k)) m.set(k, []); m.get(k).push(p); });
+    return [...m.values()].map(renderProductionGroup).join('');
   }
 
   function renderProductionList(){
@@ -5732,7 +5753,7 @@ function initApp(){
     function columnHtml(title, cssClass, items){
       const cards = items.length === 0
         ? '<div class="kanban-empty">Nothing here.</div>'
-        : `<div class="kanban-cards">${items.map(renderProductionCard).join('')}</div>`;
+        : `<div class="kanban-cards">${renderCards(items)}</div>`;
       return `
         <div class="kanban-col ${cssClass}">
           <div class="kanban-col-head">
@@ -5765,7 +5786,7 @@ function initApp(){
       const groupsHtml = catNames.map((cat, idx) => `
         <details class="station-group" ${(openFirst && idx === 0) ? 'open' : ''}>
           <summary>${escapeHtml(cat)} <span class="kanban-count">${groups[cat].length}</span></summary>
-          <div class="kanban-cards">${groups[cat].map(renderProductionCard).join('')}</div>
+          <div class="kanban-cards">${renderCards(groups[cat])}</div>
         </details>
       `).join('');
       return `
@@ -5790,7 +5811,7 @@ function initApp(){
             <summary>${label} <span class="kanban-count">${list.length}</span></summary>
             ${list.length === 0
               ? '<div class="kanban-empty">Nothing here.</div>'
-              : `<div class="kanban-cards">${list.map(renderProductionCard).join('')}</div>`}
+              : `<div class="kanban-cards">${renderCards(list)}</div>`}
           </details>`;
       }
       return `
@@ -5811,7 +5832,7 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="view-prod"]').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(plan) viewProductionDetail(plan);
       });
@@ -5819,9 +5840,9 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="delete-prod"]').forEach(btn=>{
       btn.addEventListener('click', async (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
-        if(editingProdId === id){ exitProdEditMode(); resetProdForm(); }
+        if(plan && editingGroupId && editingGroupId === plan.groupId){ exitProdEditMode(); resetProdForm(); }
         if(plan && !plan.validated && plan.stockCommitted) releasePlanStock(plan);
         plans = plans.filter(p => p.id !== id);
         await persistInventory();
@@ -5833,7 +5854,7 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="edit-prod"]').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(plan) enterProdEditMode(plan);
       });
@@ -5841,7 +5862,7 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="release-prod"]').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(plan) openReleaseModal(plan);
       });
@@ -5849,7 +5870,7 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="stub-prod"]').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(plan) printBatchStub(plan);
       });
@@ -5857,7 +5878,7 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="validate-prod"]').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(plan) openValidateModal(plan);
       });
@@ -5865,12 +5886,12 @@ function initApp(){
 
     productionBoardEl.querySelectorAll('[data-action="reopen-prod"]').forEach(btn=>{
       btn.addEventListener('click', async (e)=>{
-        const id = e.target.closest('.kanban-card').dataset.id;
+        const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(!plan) return;
-        const confirmed = window.confirm('Move batch #' + (plan.batchNumber || '') + ' ("' + plan.eventName + '") back out of Done? Its reserved stock stays deducted and it returns to Processing.');
+        const confirmed = window.confirm('Move batch #' + (plan.batchNumber || '') + ' ("' + plan.recipeName + '") back out of Done? Its reserved stock stays deducted and it returns to Processing.');
         if(!confirmed) return;
-        if(plan.dispatchedAt){
+        if(plan.dispatchedAt || (plan.allocations||[]).some(a => a.dispatchedAt)){
           window.alert('This batch has already been dispatched, so it can no longer be reopened.');
           return;
         }
@@ -5971,8 +5992,9 @@ function initApp(){
         <td class="num" style="${l.onHand < l.required ? 'color:var(--rust);' : ''}">${l.onHand.toLocaleString('en-PH',{maximumFractionDigits:2})}</td>
       </tr>`).join('');
     const body = `
-      <p class="recipe-hint">Batch #${escapeHtml(plan.batchNumber || '—')} · ${escapeHtml(plan.eventName)} ·
-      commi: ${escapeHtml(plan.commi || '—')}</p>
+      <p class="recipe-hint">Batch #${escapeHtml(plan.batchNumber || '—')} · <b>${escapeHtml(plan.recipeName)}</b> · ${plan.pax} pax ·
+      commis: ${escapeHtml(plan.commi || '—')}</p>${allocsHtml(plan)}
+      <p class="recipe-hint">${planSiblings(plan).length > 1 ? 'Only this recipe is released now. The other recipes of Batch #' + escapeHtml(plan.batchNumber || '—') + ' are released on their own, so nothing waits on them.' : ''}</p>
       <p style="font-size:12.5px;line-height:1.5;">
         Physically check and distribute each ingredient below, then tick it off. Clicking
         <b>Proceed</b> takes all of these out of the inventory — the person releasing them is accountable
@@ -6045,8 +6067,8 @@ function initApp(){
           </div>
         </div>`).join('');
     const body = `
-      <p class="recipe-hint">Batch #${escapeHtml(plan.batchNumber || '—')} · ${escapeHtml(plan.eventName)} ·
-      ${escapeHtml(plan.recipeName)} · ${plan.pax} pax</p>
+      <p class="recipe-hint">Batch #${escapeHtml(plan.batchNumber || '—')} · ${escapeHtml(plan.recipeName)} · ${plan.pax} pax</p>${allocsHtml(plan)}
+      <p class="recipe-hint">${planSiblings(plan).length > 1 ? 'Validating this recipe only — the other recipes of this batch are validated separately.' : ''}</p>
       <p style="font-size:12.5px;line-height:1.5;">
         Before this batch moves to Done, record the raw-meat excess. Everything else in the batch was already
         taken out at Release.
@@ -6112,7 +6134,7 @@ function initApp(){
     const lines = planIngredientLines(plan);
     const body = `
       <h1>Production Batch Stub</h1>
-      <p class="print-sub">Kitchen Operation Dashboard · ${escapeHtml(plan.eventName)}</p>
+      <p class="print-sub">Kitchen Operation Dashboard · ${escapeHtml(plan.category || '')}</p>
 
       <table>
         <tr><th>Batch number</th><td><b style="font-size:17px;">#${escapeHtml(plan.batchNumber || '—')}</b></td></tr>
@@ -6120,7 +6142,8 @@ function initApp(){
         <tr><th>Commis in charge</th><td><b>${escapeHtml(plan.commi || '—')}</b></td></tr>
         <tr><th>Food</th><td>${escapeHtml(plan.recipeName)}</td></tr>
         <tr><th>Pax / batches</th><td>${plan.pax} pax · ${plan.batches} batch${plan.batches===1?'':'es'}</td></tr>
-        <tr><th>Event</th><td>${escapeHtml(plan.eventName)}</td></tr>
+        <tr><th>Events / places</th><td>${(plan.allocations||[]).map(a => escapeHtml(allocText(a)) + ' — <b>' + a.pax + ' pax</b>').join('<br>')}</td></tr>
+        <tr><th>Recipes in this batch</th><td>${planSiblings(plan).map(x => escapeHtml(x.recipeName) + (x.id === plan.id ? ' <b>(this stub)</b>' : '')).join(', ')}</td></tr>
         <tr><th>Timing</th><td>${plan.startTime ? formatTimeDisplay(plan.startTime) : '—'}${plan.endTime ? ' – ' + formatTimeDisplay(plan.endTime) : ''}</td></tr>
       </table>
 
@@ -6172,12 +6195,16 @@ function initApp(){
       return;
     }
 
-    // One folder per event day — the day the production planning is for.
+    // One folder per event (date · name · place). A recipe made for 2-3 events
+    // appears once under EACH event with only that event's pax, so the chef
+    // never has to guess which pax belongs where.
     const folders = {};
     done.forEach(p=>{
-      const key = (p.eventDate || 'No event date') + ' · ' + (p.eventName || 'Unnamed event');
-      if(!folders[key]) folders[key] = [];
-      folders[key].push(p);
+      (p.allocations || []).forEach((al, i)=>{
+        const key = (al.eventDate || 'No event date') + ' · ' + (al.eventName || 'Unnamed event') + (al.place ? ' @ ' + al.place : '');
+        if(!folders[key]) folders[key] = [];
+        folders[key].push({ p, al, i });
+      });
     });
 
     wrap.innerHTML = Object.keys(folders).sort().map((key, idx)=>`
@@ -6189,16 +6216,17 @@ function initApp(){
             <th class="num">Pax</th><th>Date of production</th><th>Dispatch</th>
           </tr></thead>
           <tbody>
-            ${folders[key].map(p=>`
+            ${folders[key].map(({p, al, i})=>`
               <tr>
                 <td>${escapeHtml(p.commi || '—')}</td>
-                <td>${escapeHtml(p.recipeName)} <span class="batch-tag">#${escapeHtml(p.batchNumber || '—')}</span></td>
-                <td class="num">${p.dispatchedAt ? 0 : (p.cookedPax || p.pax)}</td>
+                <td>${escapeHtml(p.recipeName)} <span class="batch-tag">#${escapeHtml(p.batchNumber || '—')}</span>
+                  ${(p.allocations||[]).length > 1 ? '<div class="recipe-hint">part of ' + p.pax + ' pax cooked for ' + p.allocations.length + ' events</div>' : ''}</td>
+                <td class="num">${al.dispatchedAt ? 0 : al.pax}</td>
                 <td>${formatDateDisplay(p.batchDate)}</td>
-                <td>${p.dispatchedAt
-                  ? '<button type="button" class="print-btn done-btn" disabled>✓ Dispatched ' + formatDateDisplay(p.dispatchedAt) + '</button>'
+                <td>${al.dispatchedAt
+                  ? '<button type="button" class="print-btn done-btn" disabled>✓ Dispatched ' + formatDateDisplay(al.dispatchedAt) + '</button>'
                   : (canValidate()
-                      ? '<button type="button" class="print-btn dispatch-btn" data-dispatch="' + p.id + '">Dispatch</button>'
+                      ? '<button type="button" class="print-btn dispatch-btn" data-dispatch="' + p.id + '" data-ai="' + i + '">Dispatch</button>'
                       : '—')}</td>
               </tr>`).join('')}
           </tbody>
@@ -6208,7 +6236,7 @@ function initApp(){
     wrap.querySelectorAll('[data-dispatch]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const plan = plans.find(p => p.id === btn.dataset.dispatch);
-        if(plan) openDispatchPrompt(plan);
+        if(plan) openDispatchPrompt(plan, +btn.dataset.ai);
       });
     });
 
@@ -6216,16 +6244,18 @@ function initApp(){
     renderCommiSummary();
   }
 
-  function openDispatchPrompt(plan){
+  function openDispatchPrompt(plan, ai){
+    const al = (plan.allocations || [])[ai || 0];
+    if(!al) return;
     const body = `
       <p class="recipe-hint">Batch #${escapeHtml(plan.batchNumber || '—')} · ${escapeHtml(plan.recipeName)} ·
-      ${plan.cookedPax || plan.pax} pax</p>
+      <b>${al.pax} pax</b> for ${escapeHtml(allocText(al))}</p>
       <p style="font-size:12.5px;line-height:1.5;">
-        Pick the date this food is dispatched. Once confirmed, its pax leave the cooked food inventory
-        and this row can no longer be dispatched again.
+        Pick the date this food is dispatched. Only this event's pax leave the cooked food inventory;
+        the rest of the batch stays available for its other events.
       </p>
       <label for="dispatchDateInput">Dispatch date</label>
-      <input type="date" id="dispatchDateInput" value="${escapeHtml(plan.eventDate || '')}">`;
+      <input type="date" id="dispatchDateInput" value="${escapeHtml(al.eventDate || '')}">`;
     openProdAction('Dispatch cooked food', body, 'Confirm dispatch', async ()=>{
       const d = document.getElementById('dispatchDateInput').value;
       if(!d){
@@ -6233,11 +6263,17 @@ function initApp(){
         prodActionMsgEl.className = 'form-msg err';
         return;
       }
-      plan.dispatchedAt = d;
-      plan.dispatchedPax = plan.cookedPax || plan.pax;
+      al.dispatchedAt = d;
+      al.dispatchedPax = al.pax;
+      const all = plan.allocations;
+      if(all.every(x => x.dispatchedAt)){      // whole batch of this recipe is out
+        plan.dispatchedAt = all.map(x => x.dispatchedAt).sort().pop();
+        plan.dispatchedPax = plan.cookedPax || plan.pax;
+      }
       await persistPlans();
       closeProdAction();
       renderDispatch();
+      renderCalendar();
     });
   }
 
@@ -6255,7 +6291,7 @@ function initApp(){
       if(!groups[cat]) groups[cat] = {};
       if(!groups[cat][food]) groups[cat][food] = { inPax: 0, outPax: 0 };
       groups[cat][food].inPax += (p.cookedPax || p.pax || 0);
-      if(p.dispatchedAt) groups[cat][food].outPax += (p.dispatchedPax || p.cookedPax || p.pax || 0);
+      (p.allocations || []).forEach(a => { if(a.dispatchedAt) groups[cat][food].outPax += (a.dispatchedPax || a.pax || 0); });
     });
     const cats = Object.keys(groups).sort();
     if(cats.length === 0){ el.innerHTML = ''; return; }
@@ -6309,15 +6345,15 @@ function initApp(){
       <h1>Dispatch Board — Cooked Food Inventory</h1>
       <p class="print-sub">Strictly on a pax basis, not a kg basis.</p>
       <table>
-        <thead><tr><th>Event / day</th><th>Commis</th><th>Food</th><th class="num">Pax</th><th>Produced</th><th>Dispatched</th></tr></thead>
+        <thead><tr><th>Event / day / place</th><th>Commis</th><th>Food</th><th class="num">Pax</th><th>Produced</th><th>Dispatched</th></tr></thead>
         <tbody>
-          ${done.map(p=>`<tr>
-            <td>${escapeHtml((p.eventDate || '') + ' ' + p.eventName)}</td>
+          ${done.flatMap(p => (p.allocations||[]).map(a => ({p, a}))).sort((x,y)=> (x.a.eventDate||'').localeCompare(y.a.eventDate||'')).map(({p,a})=>`<tr>
+            <td>${escapeHtml(allocText(a))}</td>
             <td>${escapeHtml(p.commi || '—')}</td>
-            <td>${escapeHtml(p.recipeName)}</td>
-            <td class="num">${p.cookedPax || p.pax}</td>
+            <td>${escapeHtml(p.recipeName)} #${escapeHtml(p.batchNumber || '—')}</td>
+            <td class="num">${a.pax}</td>
             <td>${formatDateDisplay(p.batchDate)}</td>
-            <td>${p.dispatchedAt ? formatDateDisplay(p.dispatchedAt) : '☐'}</td>
+            <td>${a.dispatchedAt ? formatDateDisplay(a.dispatchedAt) : '☐'}</td>
           </tr>`).join('')}
         </tbody>
       </table>`;
@@ -6372,15 +6408,21 @@ function initApp(){
     catch(e){ console.warn('Calendar save failed', e); }
   }
 
-  // Red entries: one per released production batch, built live from plans.
+  // Red entries: ONE per production category + production date + status
+  // (Processing / Done), no matter how many recipes are in it.
+  function calProdGroups(){
+    const g = {};
+    plans.filter(p => p.released && p.batchDate).forEach(p => {
+      const st = p.validated ? 'Done' : 'Processing';
+      const cat = p.category || 'Uncategorized';
+      const key = 'prod|' + p.batchDate + '|' + cat + '|' + st;
+      if(!g[key]) g[key] = { key, date:p.batchDate, category:cat, status:st, items:[] };
+      g[key].items.push(p);
+    });
+    return Object.values(g);
+  }
   function calProductionEntries(){
-    return plans.filter(p => p.released && p.batchDate).map(p => ({
-      id: 'prod-' + p.id,
-      date: p.batchDate,
-      kind: 'prod',
-      title: 'Batch #' + (p.batchNumber || '—') + ' · ' + p.recipeName,
-      planId: p.id
-    }));
+    return calProdGroups().map(g => ({ id:g.key, date:g.date, kind:'prod', title: g.category + ' · ' + g.status }));
   }
 
   function calAllEntries(){
@@ -6484,7 +6526,7 @@ function initApp(){
     if(due.length === 0){ box.style.display = 'none'; return; }
     box.style.display = 'block';
     box.innerHTML = '<b>🔔 Due in the next 3 days</b><br>' + due.map(e=>{
-      const label = e.kind === 'prod' ? 'Production' : (e.kind === 'tasting' ? 'Food tasting' : 'Event');
+      const label = e.kind === 'prod' ? 'Production' : (e.kind === 'dispatch' ? 'Event dispatch' : (e.kind === 'tasting' ? 'Food tasting' : 'Event'));
       return formatDateDisplay(e.date) + ' — ' + label + ': ' + escapeHtml(e.title);
     }).join('<br>');
   }
@@ -6601,6 +6643,28 @@ function initApp(){
   // stub without the ingredient list and without the total amount); tasting
   // and event chips open the same edit form as the original HTML.
   function openCalendarEntry(id){
+    if(String(id).indexOf('prod|') === 0){
+      const g = calProdGroups().find(x => x.key === id);
+      if(!g) return;
+      document.getElementById('calModalTitle').textContent = 'Production schedule';
+      calModalBody.innerHTML = `
+        <table class="proc-table" style="width:100%;border-collapse:collapse;font-size:12.5px;">
+          <tr><th style="text-align:left;">Category</th><td><b>${escapeHtml(g.category)}</b></td></tr>
+          <tr><th style="text-align:left;">Date of production</th><td><b>${formatDateDisplay(g.date)}</b></td></tr>
+          <tr><th style="text-align:left;">Status</th><td>${g.status === 'Done' ? 'Done' : 'Processing (GO)'}</td></tr>
+        </table>
+        <table class="proc-table" style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px;">
+          <thead><tr><th>Food</th><th class="num">Pax</th><th>Batch</th><th>Commis</th><th>Timing</th></tr></thead>
+          <tbody>${g.items.map(p => `<tr><td>${escapeHtml(p.recipeName)}</td><td class="num">${p.pax}</td>
+            <td>#${escapeHtml(p.batchNumber || '—')}</td><td>${escapeHtml(p.commi || '—')}</td>
+            <td>${p.startTime ? formatTimeDisplay(p.startTime) : '—'}${p.endTime ? ' – ' + formatTimeDisplay(p.endTime) : ''}</td></tr>`).join('')}</tbody>
+        </table>`;
+      calFormMsg.textContent = '';
+      calSaveBtn.style.display = 'none';
+      calDeleteBtn.style.display = 'none';
+      calOverlay.style.display = 'flex';
+      return;
+    }
     if(String(id).indexOf('prod-') === 0){
       const plan = plans.find(p => ('prod-' + p.id) === id);
       if(!plan) return;
@@ -6614,7 +6678,7 @@ function initApp(){
           <tr><th style="text-align:left;">Food</th><td>${escapeHtml(plan.recipeName)}</td></tr>
           <tr><th style="text-align:left;">Production category</th><td>${escapeHtml(plan.category || '—')}</td></tr>
           <tr><th style="text-align:left;">Pax / batches</th><td>${plan.pax} pax · ${plan.batches} batch${plan.batches===1?'':'es'}</td></tr>
-          <tr><th style="text-align:left;">Event</th><td>${escapeHtml(plan.eventName)}${plan.eventDate ? ' · ' + formatDateDisplay(plan.eventDate) : ''}</td></tr>
+          <tr><th style="text-align:left;">Events / places</th><td>${(plan.allocations||[]).map(a => escapeHtml(allocText(a)) + ' — <b>' + a.pax + ' pax</b>').join('<br>')}</td></tr>
           <tr><th style="text-align:left;">Timing</th><td>${plan.startTime ? formatTimeDisplay(plan.startTime) : '—'}${plan.endTime ? ' – ' + formatTimeDisplay(plan.endTime) : ''}</td></tr>
           <tr><th style="text-align:left;">Status</th><td>${plan.validated ? 'Done' : 'Processing (GO)'}</td></tr>
         </table>`;
