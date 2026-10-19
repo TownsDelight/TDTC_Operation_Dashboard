@@ -1945,7 +1945,7 @@
 
       <label class="lbl" for="loginPassword">3. Password</label>
       <div class="pw-wrap">
-        <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+        <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         <button type="button" class="pw-eye" id="pwEye" aria-label="Show password">👁</button>
       </div>
 
@@ -8358,6 +8358,7 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
           <div><label>Password for ${d.label}</label><input type="password" class="ac-pass" placeholder="${c ? 'leave blank to keep' : 'set a password'}" autocomplete="new-password"></div>
           <button type="button" class="print-btn ac-save">Save</button>
         </div>
+        ${DEFAULT_PASSWORDS[id] ? `<div class="acct-meta" style="margin-top:6px;">Default password: <b>${DEFAULT_PASSWORDS[id]}</b> <button type="button" class="print-btn ac-default" style="padding:2px 10px;margin-left:6px;">Reset to default</button></div>` : ''}
         <div class="form-msg ac-msg"></div>
       </div>`;
     }).join('');
@@ -8365,6 +8366,19 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
       input.addEventListener('change', async (e)=>{
         managerAccountEnabled[e.target.dataset.enable] = e.target.checked;
         await persistAccessAccounts();
+      });
+    });
+    wrap.querySelectorAll('.ac-default').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const card = btn.closest('.acct-card'), id = card.dataset.account, msg = card.querySelector('.ac-msg');
+        btn.disabled = true;
+        try{
+          await loadCreds();
+          CREDS[id] = await makeCred(id, DEFAULT_PASSWORDS[id]);
+          await saveCreds();
+          msg.className = 'form-msg ac-msg ok'; msg.textContent = 'Password reset to default (' + DEFAULT_PASSWORDS[id] + ').';
+        }catch(e){ console.error(e); msg.className = 'form-msg ac-msg err'; msg.textContent = 'Could not save. Check your connection and try again.'; }
+        finally{ btn.disabled = false; }
       });
     });
     wrap.querySelectorAll('.ac-save').forEach(btn=>{
@@ -8508,6 +8522,8 @@ async function persistAccessAccounts(){
 
 // ----- credentials (salted PBKDF2 hashes; the plain password is never stored) -----
 const CRED_KEY = 'kitchen-access-credentials';
+// Default passwords (shown in Manage Access). Sales starts as sales1 until the Admin changes it.
+const DEFAULT_PASSWORDS = { sales: 'sales1' };
 const PW_ITER = 120000;
 let CREDS = null;   // { admin:{u,s,h,i}, chef1:{...}, chef2:{...}, sales:{...} }  — null until loaded
 const bytesToB64 = b => btoa(String.fromCharCode.apply(null, Array.from(b)));
@@ -8552,8 +8568,10 @@ document.querySelectorAll('#roleBtns .role').forEach(btn=>{
     selectedAcct = btn.dataset.acct;
     document.querySelectorAll('#roleBtns .role').forEach(x => x.classList.toggle('on', x === btn));
     document.getElementById('loginMsg').textContent = '';
+    document.getElementById('loginPassword').value = '';
   });
 });
+document.getElementById('loginPassword').value = '';
 document.getElementById('pwEye').addEventListener('click', ()=>{
   const p = document.getElementById('loginPassword');
   p.type = p.type === 'password' ? 'text' : 'password';
@@ -8603,6 +8621,9 @@ async function showApp(asGuest){
     await loadAccessAccounts();
     try{ await loadCreds(); }catch(e){ fail('Cannot reach the database. Check your internet connection and try again.'); return; }
     const id = selectedAcct;
+    if(!CREDS[id] && DEFAULT_PASSWORDS[id]){
+      try{ CREDS[id] = await makeCred(id, DEFAULT_PASSWORDS[id]); await saveCreds(); }catch(e){ console.error(e); }
+    }
     if(!CREDS[id]){ fail('The ' + ACCOUNT_DEFS[id].label + ' account is not set up yet. Ask the Admin to set its password in Manage Access.'); return; }
     let ok = false;
     if(id){
@@ -8660,6 +8681,7 @@ document.getElementById('createAdminBtn').addEventListener('click', async ()=>{
     await loadCreds();
     if(CREDS.admin){ fail('An Admin account already exists — please log in instead.'); checkAccess(); return; }
     CREDS.admin = await makeCred(u, p1);
+    if(!CREDS.sales) CREDS.sales = await makeCred('sales', DEFAULT_PASSWORDS.sales);
     await saveCreds();
     await loadAccessAccounts();
     enterApp({ role:'admin', label:'Admin', accountId:'admin' }, name);
