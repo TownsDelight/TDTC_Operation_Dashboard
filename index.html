@@ -323,6 +323,10 @@
   .pkg-row .mini-label{display:none;}
   .svc-extra-row{grid-template-columns:1.3fr 0.7fr 0.5fr 0.7fr 30px;}
   .pkg-row.food-row{grid-template-columns:1fr 1.8fr 0.9fr 0.9fr 30px;}
+  .pkg-row.extra-food-row{grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.8fr 0.8fr 0.9fr 30px;}
+  .pkg-row.extra-food-row .f-extra-qty{width:100%; min-width:0; box-sizing:border-box; padding-left:10px; padding-right:6px; -moz-appearance:textfield; appearance:textfield;}
+  .pkg-row.extra-food-row .f-extra-qty::-webkit-outer-spin-button,
+  .pkg-row.extra-food-row .f-extra-qty::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
   .f-price-display{
     padding:9px 11px;
     border:1px solid var(--line);
@@ -1570,6 +1574,8 @@
     .pkg-row .mini-label{display:block;}
     .pkg-row.food-row{grid-template-columns:1fr 1fr;}
     .pkg-row.food-row > div:nth-child(1), .pkg-row.food-row > div:nth-child(2){grid-column:1 / -1;}
+    .pkg-row.extra-food-row{grid-template-columns:1fr 1fr;}
+    .pkg-row.extra-food-row > div:nth-child(1), .pkg-row.extra-food-row > div:nth-child(2){grid-column:1 / -1;}
     .svc-extra-row{grid-template-columns:1fr 1fr;}
     .svc-role-row{
       grid-template-columns:1fr 1fr;
@@ -2538,6 +2544,19 @@
           <div id="pkgFoodRows"></div>
           <button class="add-ingredient-btn" id="addPkgFoodBtn" type="button">+ Add food item</button>
 
+          <p class="section-label" style="margin-top:22px;">ADDITIONAL FOOD ITEMS <span style="color:var(--steel);">(client requests — not part of the package pax yield · price × pax)</span></p>
+          <div class="headcols" style="grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.8fr 0.8fr 0.9fr 30px;">
+            <span>Category</span>
+            <span>Recipe</span>
+            <span>Pax</span>
+            <span>Price /pax (₱)</span>
+            <span>Selling price /pax</span>
+            <span>Line total (selling)</span>
+            <span></span>
+          </div>
+          <div id="pkgExtraFoodRows"></div>
+          <button class="add-ingredient-btn" id="addPkgExtraFoodBtn" type="button">+ Add additional food item</button>
+
           <p class="section-label" style="margin-top:22px;">SERVICE STAFF & LOGISTICS <span style="color:var(--steel);">(price × qty per role)</span></p>
           <div class="headcols" style="grid-template-columns:1.3fr 0.9fr 0.6fr 0.9fr;">
             <span>Role</span>
@@ -2585,6 +2604,7 @@
           <div class="summary-line"><span>Selling price (per pax)</span><span id="pkgFoodCharged">₱0.00</span></div>
           <div class="summary-line"><span>Number of pax</span><span id="pkgPaxDisplay">— pax</span></div>
           <div class="summary-line"><span>Selling price × pax</span><span id="pkgFoodChargedTotal">₱0.00</span></div>
+          <div class="summary-line"><span>Additional food total (selling)</span><span id="pkgExtraFoodTotal">₱0.00</span></div>
           <div class="summary-line"><span>Service total (staff & logistics)</span><span id="pkgServiceTotal">₱0.00</span></div>
           <div class="summary-line"><span>Miscellaneous total (flat)</span><span id="pkgMiscTotal">₱0.00</span></div>
           <div class="cost-per-pax">
@@ -3392,30 +3412,46 @@ function initApp(){
     let changed = 0;
     packages.forEach(pkg=>{
       const items = pkg.foodItems || [];
-      if(!items.length) return;
+      const extras = pkg.extraFoodItems || [];
+      if(!items.length && !extras.length) return;
       let dirty = false;
+      const findRec = fi => (fi.recipeId && recipes.find(r => r.id === fi.recipeId)) || recipes.find(r => r.name === fi.description);
       const newItems = items.map(fi=>{
-        const rec = (fi.recipeId && recipes.find(r => r.id === fi.recipeId))
-                 || recipes.find(r => r.name === fi.description);
+        const rec = findRec(fi);
         if(!rec) return fi;
         const price = rec.costPerPax || 0;
         const charged = price * MARKUP;
         if(fi.description !== rec.name || Math.abs((fi.price||0) - price) > 1e-9 || Math.abs((fi.charged||0) - charged) > 1e-9) dirty = true;
         return { ...fi, description: rec.name, recipeId: rec.id, price, charged };
       });
+      const newExtras = extras.map(fi=>{
+        const rec = findRec(fi);
+        if(!rec) return fi;
+        const price = rec.costPerPax || 0;
+        const charged = price * MARKUP;
+        const lineCost = price * (fi.qty || 0);
+        const lineCharged = charged * (fi.qty || 0);
+        if(fi.description !== rec.name || Math.abs((fi.price||0) - price) > 1e-9 || Math.abs((fi.charged||0) - charged) > 1e-9) dirty = true;
+        return { ...fi, description: rec.name, recipeId: rec.id, price, charged, lineCost, lineCharged };
+      });
       if(!dirty) return;
       const pax = pkg.pax || 0;
       const mult = pax > 0 ? pax : 1;
       const foodSubtotal = newItems.reduce((a,r)=>a+(r.price||0), 0);
       const foodCharged = newItems.reduce((a,r)=>a+(r.charged||0), 0);
+      const extraFoodCost = newExtras.reduce((a,r)=>a+(r.lineCost||0), 0);
+      const extraFoodTotal = newExtras.reduce((a,r)=>a+(r.lineCharged||0), 0);
       const serviceTotal = pkg.serviceTotal || 0;
       const miscTotal = pkg.miscTotal || 0;
       pkg.foodItems = newItems;
+      pkg.extraFoodItems = newExtras;
+      pkg.extraFoodCost = extraFoodCost;
+      pkg.extraFoodTotal = extraFoodTotal;
       pkg.foodSubtotal = foodSubtotal;
       pkg.foodCharged = foodCharged;
       pkg.foodChargedTotal = foodCharged * mult;
       pkg.rawFoodTotal = foodSubtotal * mult;
-      pkg.grandTotal = pkg.foodChargedTotal + serviceTotal + miscTotal;
+      pkg.grandTotal = pkg.foodChargedTotal + extraFoodTotal + serviceTotal + miscTotal;
       pkg.pricePerPax = pax > 0 ? (foodCharged + (serviceTotal + miscTotal) / pax) : (foodCharged + serviceTotal + miscTotal);
       pkg.updatedAt = new Date().toISOString();
       changed++;
@@ -4524,7 +4560,7 @@ function initApp(){
       { label:'Food item cost total (at food input price)', value: pkg.rawFoodTotal || 0, color:'var(--rust)' },
       { label:'Service cost total', value: pkg.serviceTotal || 0, color:'var(--herb)' },
       { label:'Miscellaneous cost total', value: pkg.miscTotal || 0, color:'var(--gold)' }
-    ];
+    ].concat((pkg.extraFoodCost || 0) > 0 ? [{ label:'Additional food cost total', value: pkg.extraFoodCost, color:'#5B7C99' }] : []);
   }
 
   // Price-structure slices (Cost of Goods / VAT / Margin) from a saved
@@ -4658,7 +4694,7 @@ function initApp(){
     subRecipeRowsContainer.innerHTML = '';
     (recipe.subRecipes || []).forEach(sr => addSubRecipeRow({
       recipeId: sr.recipeId, paxNeeded: sr.paxNeeded,
-      mode: sr.mode, qtyUsed: sr.qtyUsed
+      mode: sr.mode, qtyUsed: sr.qtyUsed, qtyUom: sr.qtyUom
     }));
     updateSummary();
 
@@ -4876,6 +4912,7 @@ function initApp(){
 
   function viewPackageDetail(pkg){
     const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td><td>${PHP(f.price||0)}</td></tr>`).join('');
+    const extraRows = (pkg.extraFoodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||'—')}</td><td>${f.qty} pax × ${PHP(f.charged||0)} = ${PHP(f.lineCharged||0)}</td></tr>`).join('');
     const svcRows = (pkg.serviceItems||[]).filter(s=>s.qty>0).map(s => `<tr><td>${escapeHtml(s.role)}</td><td>${s.qty} × ${PHP(s.price)}</td></tr>`).join('');
     const miscRows = (pkg.miscItems||[]).map(m => `<tr><td>${escapeHtml(m.desc||m.description||'—')}</td><td>${PHP(m.price||0)}</td></tr>`).join('');
     const structure = pkgPriceStructure(pkg);
@@ -4886,6 +4923,8 @@ function initApp(){
       <p style="font-size:12.5px;color:var(--ink-soft);">${pkg.pax ? pkg.pax + ' pax · ' : ''}selling price/pax: ${PHP(pkg.foodCharged)} · service: ${PHP(pkg.serviceTotal||0)} · misc (flat): ${PHP(pkg.miscTotal)}</p>
       <p style="font-weight:600;margin:10px 0 4px;">Food items</p>
       <table class="access-table"><tbody>${foodRows || '<tr><td>None</td></tr>'}</tbody></table>
+      ${extraRows ? `<p style="font-weight:600;margin:10px 0 4px;">Additional food items (not in package pax)</p>
+      <table class="access-table"><tbody>${extraRows}</tbody></table>` : ''}
       <p style="font-weight:600;margin:10px 0 4px;">Service roles</p>
       <table class="access-table"><tbody>${svcRows || '<tr><td>None</td></tr>'}</tbody></table>
       <p style="font-weight:600;margin:10px 0 4px;">Miscellaneous</p>
@@ -4917,6 +4956,7 @@ function initApp(){
   // as static, non-interactive versions (a conic-gradient circle + legend).
   function printPackage(pkg){
     const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td><td class="num">${PHP(f.price||0)}</td><td class="num">${PHP(f.charged||0)}</td></tr>`).join('');
+    const extraRows = (pkg.extraFoodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||'—')}</td><td class="num">${f.qty} pax × ${PHP(f.charged||0)}</td><td class="num">${PHP(f.lineCharged||0)}</td></tr>`).join('');
     const svcRows = (pkg.serviceItems||[]).filter(s=>s.qty>0).map(s => `<tr><td>${escapeHtml(s.role)}</td><td class="num">${s.qty} × ${PHP(s.price)}</td><td class="num">${PHP((s.qty||0)*(s.price||0))}</td></tr>`).join('');
     const miscRows = (pkg.miscItems||[]).map(m => `<tr><td>${escapeHtml(m.desc||m.description||'—')}</td><td class="num" colspan="2">${PHP(m.price||0)}</td></tr>`).join('');
     const structure = pkgPriceStructure(pkg);
@@ -4928,6 +4968,11 @@ function initApp(){
         <thead><tr><th>Recipe</th><th class="num">Price /pax</th><th class="num">Selling price (33.3%)</th></tr></thead>
         <tbody>${foodRows || '<tr><td colspan="3">None</td></tr>'}</tbody>
       </table>
+      ${extraRows ? `<p class="section-label">Additional food items (not in package pax)</p>
+      <table>
+        <thead><tr><th>Recipe</th><th class="num">Pax × selling price</th><th class="num">Line total</th></tr></thead>
+        <tbody>${extraRows}</tbody>
+      </table>` : ''}
       <p class="section-label">Service staff &amp; logistics</p>
       <table>
         <thead><tr><th>Role</th><th class="num">Price × qty</th><th class="num">Line total</th></tr></thead>
@@ -6737,6 +6782,7 @@ function initApp(){
   // ---------- Tab: Package Cost Calculator ----------
   const MARKUP = 3;
   const pkgFoodRowsEl = document.getElementById('pkgFoodRows');
+  const pkgExtraFoodRowsEl = document.getElementById('pkgExtraFoodRows');
   const pkgServiceRowsEl = document.getElementById('pkgServiceRows');
   const pkgServiceExtraRowsEl = document.getElementById('pkgServiceExtraRows');
   const pkgMiscRowsEl = document.getElementById('pkgMiscRows');
@@ -6949,6 +6995,7 @@ function initApp(){
   }
 
   function refreshFoodRecipeOptions(){
+    if(typeof refreshExtraFoodRecipeOptions === 'function') refreshExtraFoodRecipeOptions();
     pkgFoodRowsEl.querySelectorAll('.pkg-row').forEach(row=>{
       const catSel = row.querySelector('.f-category');
       const select = row.querySelector('.f-recipe');
@@ -6960,6 +7007,20 @@ function initApp(){
       if(cur) select.value = current;
       updateFoodRowDisplay(row);
     });
+  }
+
+  function refreshExtraFoodRecipeOptions(){
+    pkgExtraFoodRowsEl.querySelectorAll('.pkg-row').forEach(row=>{
+      const catSel = row.querySelector('.f-category');
+      const select = row.querySelector('.f-recipe');
+      const current = select.value;
+      const cur = recipes.find(r => r.id === current);
+      const cat = cur ? (cur.category || '') : (catSel ? catSel.value : '');
+      catSel.innerHTML = foodCategoryOptionsHtml(cat);
+      select.innerHTML = foodRecipeOptionsHtml(cat);
+      if(cur) select.value = current;
+    });
+    if(typeof updatePackageSummary === 'function') updatePackageSummary();
   }
 
   function getFoodRowsData(){
@@ -6976,6 +7037,81 @@ function initApp(){
   }
 
   document.getElementById('addPkgFoodBtn').addEventListener('click', ()=>addFoodRow());
+
+  // ---------- Additional food items ----------
+  // Food the client asks for ON TOP of the package: it is not part of the
+  // package's pax yield, so it has its own pax / quantity per row.
+  // Cost = recipe cost/pax x pax; selling = cost x MARKUP. Added to the grand
+  // total, the cost breakdown, and the grocery list (whole batches).
+  function addExtraFoodRow(data){
+    data = data || {};
+    const id = 'pkgrow-' + (pkgRowIdCounter++);
+    const row = document.createElement('div');
+    row.className = 'pkg-row extra-food-row';
+    row.dataset.rowId = id;
+    const _rec = data.recipeId ? recipes.find(r => r.id === data.recipeId) : null;
+    const _cat = _rec ? (_rec.category || '') : '';
+    row.innerHTML = `
+      <div>
+        <span class="mini-label">Category</span>
+        <select class="f-category">${foodCategoryOptionsHtml(_cat)}</select>
+      </div>
+      <div>
+        <span class="mini-label">Recipe</span>
+        <select class="f-recipe">${foodRecipeOptionsHtml(_cat)}</select>
+      </div>
+      <div>
+        <span class="mini-label">Pax</span>
+        <input type="number" class="f-extra-qty" min="0" step="any" placeholder="e.g. 20">
+      </div>
+      <div>
+        <span class="mini-label">Price /pax</span>
+        <div class="f-price-display">₱0.00</div>
+      </div>
+      <div>
+        <span class="mini-label">Selling price /pax</span>
+        <div class="f-price-display f-sell-display">₱0.00</div>
+      </div>
+      <div class="line-cost">₱0.00</div>
+      <button type="button" class="row-remove" title="Remove item">×</button>
+    `;
+    pkgExtraFoodRowsEl.appendChild(row);
+    if(data.recipeId && recipes.some(r => r.id === data.recipeId)){
+      row.querySelector('.f-recipe').value = data.recipeId;
+    }
+    if(data.qty) row.querySelector('.f-extra-qty').value = data.qty;
+    updatePackageSummary();
+
+    row.querySelector('.f-category').addEventListener('change', ()=>{
+      row.querySelector('.f-recipe').innerHTML = foodRecipeOptionsHtml(row.querySelector('.f-category').value);
+      updatePackageSummary();
+    });
+    row.querySelector('.f-recipe').addEventListener('change', updatePackageSummary);
+    row.querySelector('.f-extra-qty').addEventListener('input', updatePackageSummary);
+    row.querySelector('.row-remove').addEventListener('click', ()=>{
+      row.remove();
+      updatePackageSummary();
+    });
+  }
+
+  function getExtraFoodRowsData(){
+    return Array.from(pkgExtraFoodRowsEl.querySelectorAll('.pkg-row')).map(row=>{
+      const recipeId = row.querySelector('.f-recipe').value;
+      const recipe = recipes.find(r => r.id === recipeId);
+      const qty = parseFloat(row.querySelector('.f-extra-qty').value) || 0;
+      const description = recipe ? recipe.name : '';
+      const price = recipe ? (recipe.costPerPax || 0) : 0;
+      const charged = price * MARKUP;
+      const lineCost = price * qty;
+      const lineCharged = charged * qty;
+      const displays = row.querySelectorAll('.f-price-display');
+      displays[0].textContent = PHP(price);
+      displays[1].textContent = PHP(charged);
+      row.querySelector('.line-cost').textContent = PHP(lineCharged);
+      return { description, recipeId, qty, price, charged, lineCost, lineCharged };
+    });
+  }
+  document.getElementById('addPkgExtraFoodBtn').addEventListener('click', ()=>addExtraFoodRow());
   document.getElementById('addPkgMiscBtn').addEventListener('click', ()=>addPkgRow(pkgMiscRowsEl,'misc'));
 
   function getPkgRowsData(container, applyMarkup){
@@ -6992,6 +7128,9 @@ function initApp(){
     const foodRows = getFoodRowsData();
     const serviceRows = getServiceRowsData();
     const miscRows = getPkgRowsData(pkgMiscRowsEl, false);
+    const extraRows = getExtraFoodRowsData();
+    const extraCostTotal = extraRows.reduce((s,r)=>s+r.lineCost,0);
+    const extraChargedTotal = extraRows.reduce((s,r)=>s+r.lineCharged,0);
 
     const foodOnlyPriceSum = foodRows.reduce((s,r)=>s+r.price,0);
     const foodOnlyCharged = foodRows.reduce((s,r)=>s+r.charged,0);
@@ -7003,9 +7142,12 @@ function initApp(){
 
     const foodChargedTotal = foodOnlyCharged * paxMultiplier;
     const rawFoodTotal = foodOnlyPriceSum * paxMultiplier;
-    const grandTotal = foodChargedTotal + serviceTotal + miscTotal;
+    const grandTotal = foodChargedTotal + extraChargedTotal + serviceTotal + miscTotal;
+    // "Price per 1 pax" stays the package's own price; additional food is a
+    // separate client request, so it is shown on its own line and in the grand total.
     const perPax = pax > 0 ? (foodOnlyCharged + (serviceTotal + miscTotal) / pax) : (foodOnlyCharged + serviceTotal + miscTotal);
 
+    document.getElementById('pkgExtraFoodTotal').textContent = PHP(extraChargedTotal);
     document.getElementById('pkgFoodSubtotal').textContent = PHP(foodOnlyPriceSum);
     document.getElementById('pkgFoodCharged').textContent = PHP(foodOnlyCharged);
     document.getElementById('pkgFoodChargedTotal').textContent = PHP(foodChargedTotal);
@@ -7015,20 +7157,22 @@ function initApp(){
     document.getElementById('pkgGrandTotal').innerHTML = PHP(grandTotal);
     document.getElementById('pkgPerPax').innerHTML = PHP(perPax);
 
-    renderPkgPieChart(rawFoodTotal, serviceTotal, miscTotal);
+    renderPkgPieChart(rawFoodTotal, serviceTotal, miscTotal, extraCostTotal);
     renderPriceStructureChart(foodOnlyPriceSum, grandTotal);
   }
 
-  function renderPkgPieChart(foodTotal, serviceTotal, miscTotal){
+  function renderPkgPieChart(foodTotal, serviceTotal, miscTotal, extraTotal){
+    extraTotal = extraTotal || 0;
     const circle = document.getElementById('pkgPieChart');
     const legend = document.getElementById('pkgPieLegend');
-    const total = foodTotal + serviceTotal + miscTotal;
+    const total = foodTotal + extraTotal + serviceTotal + miscTotal;
 
     const slices = [
       { label:'Food item cost total (at food input price)', value: foodTotal, color:'var(--rust)' },
       { label:'Service cost total', value: serviceTotal, color:'var(--herb)' },
       { label:'Miscellaneous cost total', value: miscTotal, color:'var(--gold)' }
     ];
+    if(extraTotal > 0) slices.splice(1, 0, { label:'Additional food cost total', value: extraTotal, color:'#5B7C99' });
 
     if(total <= 0){
       circle.style.background = '#33362F';
@@ -7114,6 +7258,7 @@ function initApp(){
     document.getElementById('pkgName').value = '';
     document.getElementById('pkgPax').value = '';
     pkgFoodRowsEl.innerHTML = '';
+    pkgExtraFoodRowsEl.innerHTML = '';
     pkgMiscRowsEl.innerHTML = '';
     addFoodRow();
     addPkgRow(pkgMiscRowsEl,'misc');
@@ -7130,7 +7275,16 @@ function initApp(){
     document.getElementById('pkgName').value = pkg.name;
     document.getElementById('pkgPax').value = pkg.pax || '';
     pkgFoodRowsEl.innerHTML = '';
+    pkgExtraFoodRowsEl.innerHTML = '';
     pkgMiscRowsEl.innerHTML = '';
+    (pkg.extraFoodItems || []).forEach(it => {
+      let recipeId = it.recipeId;
+      if(!recipeId){
+        const matched = recipes.find(r => r.name === it.description);
+        recipeId = matched ? matched.id : '';
+      }
+      addExtraFoodRow({ recipeId, qty: it.qty });
+    });
     pkg.foodItems.forEach(it => {
       let recipeId = it.recipeId;
       if(!recipeId){
@@ -7184,6 +7338,7 @@ function initApp(){
     const name = document.getElementById('pkgName').value.trim();
     const pax = parseFloat(document.getElementById('pkgPax').value) || 0;
     const foodItems = getFoodRowsData().filter(r=>r.description);
+    const extraFoodItems = getExtraFoodRowsData().filter(r=>r.description && r.qty > 0);
     const serviceItems = getServiceRowsData();
     const miscItems = getPkgRowsData(pkgMiscRowsEl, false).filter(r=>r.description);
 
@@ -7196,7 +7351,7 @@ function initApp(){
       return;
     }
     const hasService = serviceItems.some(s => s.price > 0 && s.qty > 0);
-    if(foodItems.length === 0 && !hasService && miscItems.length === 0){
+    if(foodItems.length === 0 && extraFoodItems.length === 0 && !hasService && miscItems.length === 0){
       pkgFormMsg.textContent = 'Add at least one food, service, or miscellaneous item.';
       pkgFormMsg.className = 'form-msg err';
       return;
@@ -7209,7 +7364,9 @@ function initApp(){
     const paxMultiplier = pax > 0 ? pax : 1;
     const foodChargedTotal = foodCharged * paxMultiplier;
     const rawFoodTotal = foodSubtotal * paxMultiplier;
-    const grandTotal = foodChargedTotal + serviceTotal + miscTotal;
+    const extraFoodCost = extraFoodItems.reduce((s,r)=>s+r.lineCost,0);
+    const extraFoodTotal = extraFoodItems.reduce((s,r)=>s+r.lineCharged,0);
+    const grandTotal = foodChargedTotal + extraFoodTotal + serviceTotal + miscTotal;
     const pricePerPax = pax > 0 ? (foodCharged + (serviceTotal + miscTotal) / pax) : (foodCharged + serviceTotal + miscTotal);
     // Saved alongside the totals so the "View" modal and print can rebuild
     // the price-structure chart later without needing the live form inputs.
@@ -7222,7 +7379,7 @@ function initApp(){
       if(idx !== -1){
         packages[idx] = {
           ...packages[idx],
-          soNumber, eventDate, name, pax, foodItems, serviceItems, miscItems,
+          soNumber, eventDate, name, pax, foodItems, extraFoodItems, extraFoodCost, extraFoodTotal, serviceItems, miscItems,
           foodSubtotal, foodCharged, foodChargedTotal, serviceTotal, rawFoodTotal, miscTotal, grandTotal, pricePerPax,
           vatRate, standardPackagePrice,
           updatedAt: new Date().toISOString()
@@ -7240,7 +7397,7 @@ function initApp(){
     } else {
       const pkg = {
         id: 'pkg-' + Date.now(),
-        soNumber, eventDate, name, pax, foodItems, serviceItems, miscItems,
+        soNumber, eventDate, name, pax, foodItems, extraFoodItems, extraFoodCost, extraFoodTotal, serviceItems, miscItems,
         foodSubtotal, foodCharged, foodChargedTotal, serviceTotal, rawFoodTotal, miscTotal, grandTotal, pricePerPax,
         vatRate, standardPackagePrice,
         savedAt: new Date().toISOString()
@@ -7339,7 +7496,7 @@ function initApp(){
         <div>
           ${pkg.soNumber ? `<span class="so-tag">SO# ${escapeHtml(pkg.soNumber)}</span>` : ''}
           ${d ? `<span class="cat-tag date-tag">📅 ${escapeHtml(fmtIso(d))}</span>` : '<span class="cat-tag nodate-tag">no date yet</span>'}
-          <span class="cat-tag">${pkg.foodItems.length} food · ${serviceCount} service role${serviceCount===1?'':'s'} · ${pkg.miscItems.length} misc</span>
+          <span class="cat-tag">${pkg.foodItems.length} food${(pkg.extraFoodItems||[]).length ? ' + ' + pkg.extraFoodItems.length + ' additional' : ''} · ${serviceCount} service role${serviceCount===1?'':'s'} · ${pkg.miscItems.length} misc</span>
           ${pkg.pax ? `<span class="cat-tag">${pkg.pax} pax</span>` : ''}
           <div class="rname">${escapeHtml(pkg.name)}</div>
           <div class="rmeta">selling price/pax: ${PHP(pkg.foodCharged)} · service: ${PHP(serviceTotal)} · misc (flat): ${PHP(pkg.miscTotal)}${pkg.pax ? ' · ' + PHP(pkg.pricePerPax) + ' / pax' : ''}</div>
@@ -7426,7 +7583,7 @@ function initApp(){
           return;
         }
         const serviceTotal = pkg.serviceTotal || 0;
-        const adjustedTotal = (pkg.foodCharged * newPax) + serviceTotal + pkg.miscTotal;
+        const adjustedTotal = (pkg.foodCharged * newPax) + (pkg.extraFoodTotal || 0) + serviceTotal + pkg.miscTotal;
         resultEl.textContent = '= ' + PHP(adjustedTotal) + ' for ' + newPax + ' pax';
       });
     });
@@ -7467,7 +7624,7 @@ function initApp(){
 
   function datedPackages(){ return packages.filter(p => pkgDate(p)); }
   function grocSig(p){
-    return [pkgDate(p), p.pax || 0, p.name || '', (p.foodItems || []).map(f => f.recipeId || f.description || '').sort().join(',')].join('|');
+    return [pkgDate(p), p.pax || 0, p.name || '', (p.foodItems || []).map(f => f.recipeId || f.description || '').sort().join(','), (p.extraFoodItems || []).map(f => (f.recipeId || f.description || '') + ':' + (f.qty || 0)).sort().join(',')].join('|');
   }
   function grocDiff(){
     const snap = grocLog.snapshot || {};
@@ -7518,6 +7675,19 @@ function initApp(){
       if(!recipe){ issues.push((f.description || 'a food item') + ' — saved recipe not found'); return; }
       if(!(recipe.yieldVal > 0)){ issues.push(recipe.name + ' — recipe has no yield'); return; }
       const batches = Math.ceil(pkg.pax / recipe.yieldVal);
+      getMergedIngredients(recipe, batches).forEach(ing => {
+        const k = ingredientKey(ing.name, ing.uom);
+        if(!lines[k]) lines[k] = { key:k, name:ing.name, uom:ing.uom, qty:0 };
+        lines[k].qty += ing.qty;
+      });
+    });
+    // Additional food items: their own pax, rounded up to whole batches.
+    (pkg.extraFoodItems || []).forEach(f => {
+      if(!(f.qty > 0)) return;
+      const recipe = (f.recipeId && recipes.find(r => r.id === f.recipeId)) || recipes.find(r => r.name === f.description);
+      if(!recipe){ issues.push((f.description || 'an additional food item') + ' — saved recipe not found'); return; }
+      if(!(recipe.yieldVal > 0)){ issues.push(recipe.name + ' — recipe has no yield'); return; }
+      const batches = Math.ceil(f.qty / recipe.yieldVal);
       getMergedIngredients(recipe, batches).forEach(ing => {
         const k = ingredientKey(ing.name, ing.uom);
         if(!lines[k]) lines[k] = { key:k, name:ing.name, uom:ing.uom, qty:0 };
@@ -7985,13 +8155,14 @@ function initApp(){
 
     add((d.packages||[]).map(p => ({
       'Package': p.name, 'SO#': p.soNumber||'', 'Pax': p.pax||'',
-      'Food Charged': p.foodCharged, 'Service Total': p.serviceTotal||0,
+      'Food Charged': p.foodCharged, 'Additional Food Total': p.extraFoodTotal||0, 'Service Total': p.serviceTotal||0,
       'Misc Total': p.miscTotal, 'Grand Total': p.grandTotal, 'Price per 1 pax': p.pricePerPax||0,
       'Standard Package Price': p.standardPackagePrice||'', 'VAT %': p.vatRate!=null?p.vatRate:''
     })), 'No packages saved', 'Packages');
 
     add((d.packages||[]).flatMap(p => [].concat(
       (p.foodItems||[]).map(f => ({ 'Package': p.name, 'Section': 'Food', 'Item': f.description||f.recipeName||f.desc||'', 'Qty': '', 'Price': f.price||0, 'Charged (x3)': f.charged||0 })),
+      (p.extraFoodItems||[]).map(f => ({ 'Package': p.name, 'Section': 'Additional Food', 'Item': f.description||'', 'Qty': f.qty||0, 'Price': f.price||0, 'Charged (x3)': f.lineCharged||0 })),
       (p.serviceItems||[]).filter(x=>x.qty>0).map(x => ({ 'Package': p.name, 'Section': 'Service', 'Item': x.role, 'Qty': x.qty, 'Price': x.price||0, 'Charged (x3)': (x.qty||0)*(x.price||0) })),
       (p.miscItems||[]).map(m => ({ 'Package': p.name, 'Section': 'Misc', 'Item': m.desc||m.description||'', 'Qty': '', 'Price': m.price||0, 'Charged (x3)': m.price||0 }))
     )), 'No package line items', 'Package Details');
@@ -8017,12 +8188,14 @@ function initApp(){
   // ---------- Read-only viewer (opens in its own tab / downloadable page) ----------
   function archivePackageDetailHtml(pkg){
     const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td><td class="num">${PHP(f.price||0)}</td></tr>`).join('');
+    const extraRows = (pkg.extraFoodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||'—')}</td><td class="num">${f.qty} pax × ${PHP(f.charged||0)} = ${PHP(f.lineCharged||0)}</td></tr>`).join('');
     const svcRows = (pkg.serviceItems||[]).filter(x=>x.qty>0).map(x => `<tr><td>${escapeHtml(x.role)}</td><td class="num">${x.qty} × ${PHP(x.price)}</td></tr>`).join('');
     const miscRows = (pkg.miscItems||[]).map(m => `<tr><td>${escapeHtml(m.desc||m.description||'—')}</td><td class="num">${PHP(m.price||0)}</td></tr>`).join('');
     const st = pkgPriceStructure(pkg);
     return `
       <p class="meta">${pkg.pax ? pkg.pax + ' pax · ' : ''}selling price/pax: ${PHP(pkg.foodCharged)} · service: ${PHP(pkg.serviceTotal||0)} · misc (flat): ${PHP(pkg.miscTotal)}</p>
       <p class="lbl">Food items</p><table><tbody>${foodRows || '<tr><td>None</td></tr>'}</tbody></table>
+      ${extraRows ? `<p class="lbl">Additional food items (not in package pax)</p><table><tbody>${extraRows}</tbody></table>` : ''}
       <p class="lbl">Service roles</p><table><tbody>${svcRows || '<tr><td>None</td></tr>'}</tbody></table>
       <p class="lbl">Miscellaneous</p><table><tbody>${miscRows || '<tr><td>None</td></tr>'}</tbody></table>
       <p class="tot">Grand total: ${PHP(pkg.grandTotal)}</p>
