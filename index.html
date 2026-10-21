@@ -1913,6 +1913,10 @@
   .gl-table td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
   .gl-table .num{text-align:right;white-space:nowrap;font-family:'IBM Plex Mono',monospace;}
   .gl-table th.num{text-align:right;}
+  .gl-cat td{background:var(--surface-alt);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);padding:10px 10px;border-top:2px solid var(--line);border-bottom:1px solid var(--line);}
+  .gl-cat .gl-cat-sub{float:right;font-weight:500;letter-spacing:.02em;text-transform:none;color:var(--steel);}
+  .gl-jump{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;}
+  .gl-jump a{font-size:12px;text-decoration:none;background:var(--surface-alt);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:4px 11px;}
   .gl-short{color:var(--danger);font-weight:700;}
   .gl-ok{color:var(--herb-dark,#48603F);font-weight:600;}
   .gl-warn{background:#FFF1CC;border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:10px;color:#6B4E10;}
@@ -7719,25 +7723,50 @@ function initApp(){
   }
 
   const shortDate = d => fmtIso(d, {month:'short', day:'numeric'});
+  // Category of a grocery line, decided by the FIRST word of the ingredient name:
+  //   "Fresh ..." -> Vegetables, "Raw ..." -> Raw Meats, everything else -> Grocery
+  const GROC_CATS = [
+    { id:'meat', label:'Raw Meats' },
+    { id:'veg', label:'Vegetables' },
+    { id:'grocery', label:'Grocery' }
+  ];
+  function grocCategory(name){
+    const first = String(name || '').trim().split(/[\s\-_:,]+/)[0].replace(/[^A-Za-z]/g, '').toLowerCase();
+    if(first === 'fresh') return 'veg';
+    if(first === 'raw') return 'meat';
+    return 'grocery';
+  }
+  function grocGroups(items){
+    const groups = {};
+    GROC_CATS.forEach(c => groups[c.id] = []);
+    items.forEach(it => groups[grocCategory(it.name)].push(it));
+    return GROC_CATS.map(c => ({ id:c.id, label:c.label, items:groups[c.id], cost: groups[c.id].reduce((s, i) => s + i.cost, 0) }));
+  }
+  function grocCatRow(c, bid, cols){
+    return '<tr class=\"gl-cat\" id=\"glcat-' + escapeHtml(bid) + '-' + c.id + '\"><td colspan=\"' + cols + '\">' + escapeHtml(c.label) + ' <span class=\"gl-cat-sub\">' + c.items.length + ' item' + (c.items.length === 1 ? '' : 's') + ' · est. to buy ' + PHP(c.cost) + '</span></td></tr>';
+  }
   function grocBlockHtml(bid, title, pkgList){
     grocBlocks[bid] = { title, pkgs: pkgList };
     const g = computeGrocery(pkgList);
     const evs = pkgList.slice().sort((a, b) => pkgDate(a).localeCompare(pkgDate(b)));
     const chips = evs.map(p => '<span class="gl-chip">📅 ' + escapeHtml(shortDate(pkgDate(p))) + ' · ' + escapeHtml(p.name) + (p.pax ? ' · ' + p.pax + ' pax' : '') + '</span>').join('');
     const warn = g.issues.length ? '<div class="gl-warn">⚠ Not fully counted: ' + g.issues.map(escapeHtml).join(' · ') + '</div>' : '';
-    const rows = g.items.map(it => {
+    const rowHtml = it => {
       const dates = Array.from(new Set(it.uses.map(u => u.date))).map(shortDate).join(', ');
       return '<tr><td>' + escapeHtml(it.name) + '</td><td class="num">' + GQ(it.qty) + ' ' + escapeHtml(it.uom) + '</td>' +
         '<td class="num">' + GQ(it.onHand) + '</td>' +
         '<td class="num ' + (it.toBuy > 0 ? 'gl-short' : 'gl-ok') + '">' + (it.toBuy > 0 ? GQ(it.toBuy) + ' ' + escapeHtml(it.uom) : 'covered') + '</td>' +
         '<td class="num">' + (it.toBuy > 0 ? PHP(it.cost) : '—') + '</td><td>' + escapeHtml(dates) + '</td></tr>';
-    }).join('');
+    };
+    const cats = grocGroups(g.items);
+    const rows = cats.map(c => grocCatRow(c, bid, 6) + (c.items.length ? c.items.map(rowHtml).join('') : '<tr><td colspan="6" style="color:var(--steel);font-style:italic;">No items in this category.</td></tr>')).join('');
+    const jump = cats.length ? '<div class="gl-jump">' + cats.map(c => '<a href="#glcat-' + escapeHtml(bid) + '-' + c.id + '" onclick="var e=document.getElementById(\'glcat-' + escapeHtml(bid) + '-' + c.id + '\');if(e){e.scrollIntoView({behavior:\'smooth\',block:\'start\'});}return false;">' + escapeHtml(c.label) + ' (' + c.items.length + ')</a>').join('') + '</div>' : '';
     const table = g.items.length
       ? '<div class="gl-tablewrap"><table class="gl-table"><thead><tr><th>Ingredient</th><th class="num">Total needed</th><th class="num">On hand now</th><th class="num">To buy</th><th class="num">Est. cost</th><th>Needed on</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
       : '<div class="empty-state" style="margin:0;">No ingredients could be computed for these events yet.</div>';
     return '<div class="gl-block"><div class="gl-head"><div class="gl-meta"><b>' + evs.length + ' event' + (evs.length === 1 ? '' : 's') + '</b> · ' + g.items.length + ' ingredient' + (g.items.length === 1 ? '' : 's') + ' · est. to buy <b>' + PHP(g.totalCost) + '</b></div>' +
       '<button type="button" class="print-btn" data-gprint="' + escapeHtml(bid) + '">🖨 Print grocery list</button></div>' +
-      '<div class="gl-chips">' + chips + '</div>' + warn + table + '</div>';
+      '<div class="gl-chips">' + chips + '</div>' + warn + jump + table + '</div>';
   }
 
   function renderGrocery(){
@@ -7868,11 +7897,14 @@ function initApp(){
     const g = computeGrocery(b.pkgs);
     const evs = b.pkgs.slice().sort((x, y) => pkgDate(x).localeCompare(pkgDate(y)));
     const evRows = evs.map(p => '<tr><td>' + escapeHtml(fmtIso(pkgDate(p))) + '</td><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(p.soNumber || '—') + '</td><td class="num">' + (p.pax || '—') + '</td></tr>').join('');
-    const rows = g.items.map(it => {
+    const rowHtml = it => {
       const uses = it.uses.map(u => escapeHtml(shortDate(u.date)) + ' · ' + escapeHtml(u.name) + ' — ' + GQ(u.qty) + ' ' + escapeHtml(it.uom)).join('<br>');
       return '<tr><td>' + escapeHtml(it.name) + '</td><td class="num">' + GQ(it.qty) + ' ' + escapeHtml(it.uom) + '</td><td class="num">' + GQ(it.onHand) + '</td>' +
         '<td class="num"><b>' + (it.toBuy > 0 ? GQ(it.toBuy) + ' ' + escapeHtml(it.uom) : 'covered') + '</b></td><td class="num">' + (it.toBuy > 0 ? PHP(it.cost) : '—') + '</td><td>' + uses + '</td></tr>';
-    }).join('');
+    };
+    const rows = grocGroups(g.items).map(c =>
+      '<tr><td colspan="6" style="background:#EDE9DD;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-top:2px solid #999;">' + escapeHtml(c.label) + ' <span style="float:right;font-weight:500;text-transform:none;">' + c.items.length + ' item' + (c.items.length === 1 ? '' : 's') + ' · est. to buy ' + PHP(c.cost) + '</span></td></tr>' + (c.items.length ? c.items.map(rowHtml).join('') : '<tr><td colspan="6" style="font-style:italic;color:#777;">No items in this category.</td></tr>')
+    ).join('');
     const first = evs.length ? fmtIso(pkgDate(evs[0])) : '', last = evs.length ? fmtIso(pkgDate(evs[evs.length - 1])) : '';
     printSection('Computed Grocery List — ' + b.title, `
       <h1>Computed Grocery List</h1>
