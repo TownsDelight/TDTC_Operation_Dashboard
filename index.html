@@ -1863,6 +1863,66 @@
   #panel-packages[data-view="saved"] .builder-grid{display:none;}
   #panel-history[data-view="inv"] #hist-pkg{display:none;}
   #panel-history[data-view="pkg"] #hist-inv{display:none;}
+  #panel-history[data-view="inv"] #hist-ft,#panel-history[data-view="pkg"] #hist-ft{display:none;}
+  #panel-history[data-view="ft"] #hist-inv,#panel-history[data-view="ft"] #hist-pkg{display:none;}
+  #panel-foodtasting[data-view="input"] #ft-saved,#panel-foodtasting[data-view="input"] #ft-eval,
+  #panel-foodtasting[data-view="saved"] #ft-input,#panel-foodtasting[data-view="saved"] #ft-eval,
+  #panel-foodtasting[data-view="eval"] #ft-input,#panel-foodtasting[data-view="eval"] #ft-saved{display:none;}
+  .ft-banner{margin:0 0 14px;}
+  .ft-b{padding:10px 14px;border-radius:8px;margin:0 0 8px;font-size:13px;line-height:1.5;border:1px solid;}
+  .ft-b.ev{background:#FFF4D6;border-color:#E2B93B;color:#6B5200;}
+  .ft-b.nf{background:#FBE3DF;border-color:#D9786B;color:#8A2E1A;}
+  .ft-b.ok{background:#E6F3E1;border-color:#8CBF7F;color:#255A1F;}
+  .ft-b button{margin-left:8px;border:1px solid currentColor;background:#fff;color:inherit;border-radius:6px;padding:3px 10px;font-weight:700;cursor:pointer;}
+  .ft-hint{font-size:12.5px;color:#777;margin:4px 0 8px;}
+  .ft-checks{display:flex;gap:22px;margin:6px 0 14px;}
+  .ft-checks label,.ft-toggle,.ft-follow{display:flex;align-items:center;gap:8px;font-weight:600;}
+  .ft-checks input,.ft-toggle input,.ft-follow input{width:auto;margin:0;}
+  .ft-toggle{margin:4px 0 8px;font-weight:500;}
+  .ft-follow{margin:16px 0 8px;color:#8A2E1A;}
+  .ftp{border:1px solid #DDD6C5;border-radius:10px;background:#fff;padding:8px;margin-bottom:14px;}
+  .ftp-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;}
+  .ftp-head button{border:1px solid #ccc;background:#fff;border-radius:6px;padding:2px 12px;cursor:pointer;font-size:16px;}
+  .ftp-wd,.ftp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .ftp-wd div{text-align:center;font-size:11px;color:#888;padding:2px 0;}
+  .ftp-cell{min-height:78px;border:1px solid #E5DFD0;border-radius:6px;padding:4px;cursor:pointer;background:#FBF8F0;overflow:hidden;}
+  .ftp-cell.out{opacity:.45;}
+  .ftp-cell.open{background:#EAF5E4;border-color:#8CBF7F;}
+  .ftp-cell.closed{background:#FBE9E6;border-color:#D9A59C;}
+  .ftp-cell.blocked{cursor:not-allowed;filter:grayscale(.55);opacity:.6;}
+  .ftp-cell.sel{outline:3px solid #B8923F;opacity:1;filter:none;}
+  .ftp-top{display:flex;justify-content:space-between;font-size:12px;font-weight:700;}
+  .ftp-top i{font-style:normal;font-size:9.5px;font-weight:600;color:#666;}
+  .ftp-cell .cal-chip{font-size:10px;padding:2px 4px;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .ftp-more{font-size:10px;color:#777;margin-top:2px;}
+  .cal-chip.ftnofood{background:#B3261E !important;color:#fff !important;}
+  .ft-pkgs{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 0;}
+  .ft-pkgs label{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px;margin:0;}
+  .ft-pkgs input{width:auto;margin:0;}
+  .prod-recipe-pick{display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:8px;}
+  @media (max-width:560px){.prod-recipe-pick{grid-template-columns:1fr;}}
+  .ft-cat{margin:0 0 16px;}
+  .ft-cat-h{display:flex;justify-content:space-between;border-bottom:2px solid #1F3B34;padding-bottom:5px;margin-bottom:8px;}
+  .ft-sub{font-size:12px;color:#777;}
+  .ft-rows{display:flex;flex-direction:column;gap:6px;}
+  .ft-row{display:grid;grid-template-columns:1fr 100px 100px 26px;gap:8px;align-items:center;}
+  .ft-row input{margin:0;}
+  .ft-sell{font-weight:700;text-align:right;background:#EFE9D8;border-radius:4px;padding:8px;font-size:13px;}
+  .ft-add{margin-top:8px;border:1px dashed #B8923F;background:none;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer;}
+  .ft-sum{display:flex;flex-wrap:wrap;gap:22px;background:#1F3B34;color:#F5F1E7;border-radius:8px;padding:12px 16px;margin:14px 0;}
+  .ft-sum span{display:block;font-size:11px;color:#C9C2AE;}
+  .ft-sum b{font-size:17px;}
+  .recipe-item.ft-red{border-left:5px solid #B3261E;background:#FFF3F1;}
+  .ft-redtag{background:#B3261E !important;color:#fff !important;}
+  .pkgf.ft-redf .pkgf-head{background:#F6D5D0;color:#8A2E1A;}
+  .ft-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .ft-evalcard{margin-bottom:16px;}
+  .ft-evform{margin-top:12px;padding-top:12px;border-top:1px dashed #ccc;display:flex;flex-direction:column;gap:8px;}
+  .ft-evform label{display:flex;gap:8px;align-items:center;font-weight:600;}
+  .ft-evform input[type=radio]{width:auto;margin:0;}
+  .ft-evform textarea,.ft-evform input[type=date]{width:100%;}
+  @media (max-width:560px){.ft-row{grid-template-columns:1fr 84px 84px 22px;}.ftp-cell{min-height:56px;}}
+
   .setup-note{background:var(--cream);border-radius:10px;padding:12px 14px;font-size:13.5px !important;text-align:left !important;color:var(--ink) !important;margin:6px 0 4px !important;}
   .acct-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;}
   .acct-name{font-weight:700;margin-right:10px;}
@@ -2139,6 +2199,7 @@
         <span>Access: <span class="role-badge-pill" id="currentRoleBadge">—</span></span>
         <button class="print-btn" id="masterArchiveOpenBtn" type="button" style="display:none;">🗄 Master Archive</button>
         <button class="print-btn" id="manageAccessOpenBtn" type="button" style="display:none;">🔐 Manage Access</button>
+        <button class="print-btn" id="conversionOpenBtn" type="button" style="display:none;">🔄 Conversion</button>
         <button class="print-btn" id="logoutBtn" type="button">LOGOUT</button>
       </div>
     </div>
@@ -2155,9 +2216,11 @@
     <button class="tab-btn" data-tab="dispatch"><span class="clip"></span>Dispatching</button>
     <button class="tab-btn" data-tab="calendar"><span class="clip"></span>Calendar</button>
     <button class="tab-btn" data-tab="history"><span class="clip"></span>History</button>
+    <button class="tab-btn" data-tab="foodtasting"><span class="clip"></span>Food Tasting</button>
   </div>
 
   <!-- ===================== TAB 1 ===================== -->
+  <div id="ftGlobalBanner" class="ft-banner" style="display:none;"></div>
   <section class="panel" id="panel-home"></section>
 
   <section class="panel active" id="panel-builder">
@@ -2465,6 +2528,7 @@
   <!-- ===================== TAB: CALENDAR ===================== -->
   <section class="panel" id="panel-calendar">
     <div id="calDueBox" class="cal-due" style="display:none;"></div>
+    <div id="calFtWarn" class="ft-banner" style="display:none;"></div>
     <div class="cal-toolbar">
       <div class="cal-month-switch">
         <button class="print-btn" type="button" id="calPrevBtn">‹</button>
@@ -2668,6 +2732,8 @@
     <p class="gl-intro">An advance <b>overview of the expected grocery</b>, computed from the <b>Saved Packages that have an event date</b> (each food item's recipe &times; the package pax, rounded up to whole batches &mdash; the same way Production Planning works). <b>Ingredient Procurement</b> stays based on batch planning; this list looks ahead, per month, per week or per day.</p>
     <div id="groceryBanner"></div>
     <div id="groceryList" data-fscope="gl"></div>
+    <p class="section-label" style="color:#9C9F92;margin-top:30px;">FOOD TASTING — COMPUTED GROCERY LIST</p>
+    <div id="groceryFtList" data-fscope="fg"></div>
     <p class="section-label" style="color:#9C9F92;margin-top:30px;">COMPUTED GROCERY LIST — HISTORY LOG</p>
     <div id="groceryLog"></div>
   </section>
@@ -2708,6 +2774,10 @@
       <p class="section-label" style="color:#9C9F92;">INVENTORY HISTORY — every stock change, price change and rename</p>
       <div class="history-panel" id="historyPanel"></div>
     </div>
+    <div id="hist-ft">
+      <p class="section-label" style="color:#9C9F92;">FOOD TASTING HISTORY — added, edited, evaluated and deleted</p>
+      <div class="card" style="padding:0;overflow:hidden;"><div id="ftHistoryPanel" style="max-height:440px;overflow:auto;"></div></div>
+    </div>
     <div id="hist-pkg">
     <div id="pkgHistoryWrap" style="display:none;">
         <p class="section-label" style="color:#9C9F92;">PACKAGE CHANGE HISTORY — who added, edited or deleted a package</p>
@@ -2716,6 +2786,39 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- ===================== TAB 7: FOOD TASTING ===================== -->
+  <section class="panel" id="panel-foodtasting" data-view="input">
+    <div id="ft-input">
+      <div class="card ticket">
+        <p class="section-label" id="ftFormTitle">FOOD TASTING — NEW ENTRY</p>
+        <div class="field-row" style="grid-template-columns:1fr 1fr;max-width:640px;">
+          <div><label for="ftSales">Name of Sales</label><input type="text" id="ftSales" placeholder="e.g. Jelay"></div>
+          <div><label for="ftPax">Pax</label><input type="number" id="ftPax" min="1" step="1" placeholder="e.g. 4"></div>
+        </div>
+        <div class="field-row" style="grid-template-columns:1fr 1fr;max-width:640px;">
+          <div><label for="ftPkg">Package</label><div class="ft-pkgs" id="ftPkg"><label><input type="checkbox" class="ftPkgCb" value="PRESTIGE"> PRESTIGE</label><label><input type="checkbox" class="ftPkgCb" value="DC"> DC</label><label><input type="checkbox" class="ftPkgCb" value="FILIPINIANA"> FILIPINIANA</label><label><input type="checkbox" class="ftPkgCb" value="DI AO"> DI AO</label><label><input type="checkbox" class="ftPkgCb" value="CORPORATE"> CORPORATE</label></div></div>
+          <div><label for="ftTime">Time</label><input type="time" id="ftTime"></div>
+        </div>
+        <label>Status</label>
+        <div class="ft-checks"><label><input type="checkbox" id="ftStBooked"> BOOKED</label><label><input type="checkbox" id="ftStWaiting"> WAITING</label></div>
+        <label>Date of the food tasting</label>
+        <label class="ft-toggle"><input type="checkbox" id="ftEnforce" checked> Pick from <b>Open</b> slots only — Closed and unmarked days are locked (untick to pick any day)</label>
+        <div id="ftPickInfo"></div>
+        <div id="ftPicker" class="ftp"></div>
+        <p class="section-label">FOOD LIST — input cost, selling price = input × 3</p>
+        <div id="ftFoods"></div>
+        <label class="ft-follow"><input type="checkbox" id="ftFollow"> TO FOLLOW — the food list will be submitted later</label>
+        <div id="ftFollowNote"></div>
+        <div id="ftSum" class="ft-sum"></div>
+        <div class="form-msg" id="ftMsg"></div>
+        <button type="button" class="save-btn" id="ftSaveBtn" style="width:auto;padding:11px 22px;">Save food tasting</button>
+        <button type="button" class="print-btn" id="ftResetBtn" style="margin-left:10px;">Clear form</button>
+      </div>
+    </div>
+    <div id="ft-saved"><div id="ftBanners" class="ft-banner" style="display:none;"></div><div id="ftDash"></div><div id="ftSavedList"></div></div>
+    <div id="ft-eval"><div id="ftEvalList"></div></div>
   </section>
 
   <p class="footer-note">Data is shared through your team's Supabase database — Kitchen Operation Dashboard, Commissary Operations.</p>
@@ -4118,7 +4221,8 @@ function initApp(){
       if(btn.dataset.tab === 'grocery') renderGrocery();
       if(btn.dataset.tab === 'production'){ refreshRecipeSelect(); syncProductionCommitments().then(renderProductionList); }
       if(btn.dataset.tab === 'packages') renderPackageList();
-      if(btn.dataset.tab === 'history'){ renderHistoryPanel(); loadPkgHistory(); }
+      if(btn.dataset.tab === 'history'){ renderHistoryPanel(); loadPkgHistory(); loadFtHistory(); }
+      if(btn.dataset.tab === 'foodtasting') renderFoodTasting();
       if(btn.dataset.tab === 'inventory') renderInventoryTable();
       if(btn.dataset.tab === 'dispatch') renderDispatch();
       if(btn.dataset.tab === 'calendar') renderCalendar();
@@ -5416,9 +5520,13 @@ function initApp(){
     });
   }
 
-  function recipeOptionsHtml(sel){
+  function recipeCatOptionsHtml(sel){
+    const cats = [...new Set(recipes.map(r => r.category).filter(Boolean))].sort();
+    return '<option value="">All categories (' + recipes.length + ')</option>' + cats.map(c => `<option value="${escapeHtml(c)}" ${c===sel?'selected':''}>${escapeHtml(c)} (${recipes.filter(r => r.category === c).length})</option>`).join('');
+  }
+  function recipeOptionsHtml(sel, cat){
     return '<option value="">Select a saved recipe…</option>' +
-      recipes.map(r => `<option value="${r.id}" ${r.id===sel?'selected':''}>${escapeHtml(r.name)} (${escapeHtml(r.category)})</option>`).join('');
+      recipes.filter(r => !cat || r.category === cat || r.id === sel).map(r => `<option value="${r.id}" ${r.id===sel?'selected':''}>${escapeHtml(r.name)} (${escapeHtml(r.category)})</option>`).join('');
   }
   function lineCalc(ln){
     const recipe = recipes.find(r => r.id === ln.recipeId);
@@ -5440,7 +5548,7 @@ function initApp(){
       return `<div class="prod-line" data-lk="${ln.key}">
         <div class="prod-line-head"><b>Recipe ${i+1}</b>
           ${prodLines.filter(x=>!x.locked).length > 1 ? '<button type="button" class="alloc-x" data-act="rm-line">Remove recipe</button>' : ''}</div>
-        <select data-f="recipe">${recipeOptionsHtml(ln.recipeId)}</select>
+        <div class="prod-recipe-pick"><select data-f="cat" title="Filter recipes by category">${recipeCatOptionsHtml(ln.cat || '')}</select><select data-f="recipe">${recipeOptionsHtml(ln.recipeId, ln.cat || '')}</select></div>
         <p class="recipe-hint" data-hint></p>
         <div class="field-row">
           <div><label>Start time (this recipe)</label><input type="time" data-f="start" value="${ln.startTime}"></div>
@@ -5502,6 +5610,11 @@ function initApp(){
   prodLinesEl.addEventListener('change', e=>{
     const lineEl = e.target.closest('.prod-line'); if(!lineEl) return;
     const ln = prodLines.find(x => x.key === lineEl.dataset.lk); if(!ln) return;
+    if(e.target.dataset.f === 'cat'){
+      ln.cat = e.target.value;
+      const rs = lineEl.querySelector('select[data-f="recipe"]'); rs.innerHTML = recipeOptionsHtml(ln.recipeId, ln.cat);
+      return;
+    }
     if(e.target.dataset.f === 'recipe'){
       const dup = prodLines.find(x => x !== ln && x.recipeId && x.recipeId === e.target.value);
       if(dup){
@@ -6482,7 +6595,7 @@ function initApp(){
       title: e.venue,
       person: e.person || ''
     }));
-    return saved.concat(calProductionEntries());
+    return saved.concat(calProductionEntries(), ftCalEntries());
   }
 
   function calCellInfo(index, year, month){
@@ -6560,6 +6673,7 @@ function initApp(){
     });
 
     renderCalendarDueNotice();
+    ftRenderBanners();
   }
 
   // Notification for anything due today or in the next 3 days.
@@ -6575,7 +6689,7 @@ function initApp(){
     if(due.length === 0){ box.style.display = 'none'; return; }
     box.style.display = 'block';
     box.innerHTML = '<b>🔔 Due in the next 3 days</b><br>' + due.map(e=>{
-      const label = e.kind === 'prod' ? 'Production' : (e.kind === 'dispatch' ? 'Event dispatch' : (e.kind === 'tasting' ? 'Food tasting' : 'Event'));
+      const label = e.kind === 'prod' ? 'Production' : (e.kind === 'dispatch' ? 'Event dispatch' : ((e.kind === 'tasting' || e.kind === 'ftnofood') ? 'Food tasting' : 'Event'));
       return formatDateDisplay(e.date) + ' — ' + label + ': ' + escapeHtml(e.title);
     }).join('<br>');
   }
@@ -6692,6 +6806,7 @@ function initApp(){
   // stub without the ingredient list and without the total amount); tasting
   // and event chips open the same edit form as the original HTML.
   function openCalendarEntry(id){
+    if(String(id).indexOf('ft|') === 0){ ftShowDetail(String(id).slice(3)); return; }
     if(String(id).indexOf('prod|') === 0){
       const g = calProdGroups().find(x => x.key === id);
       if(!g) return;
@@ -6775,7 +6890,7 @@ function initApp(){
           ${entries.length === 0 ? '<tr><td colspan="3">Nothing scheduled this month.</td></tr>' :
             entries.map(e=>`<tr>
               <td>${formatDateDisplay(e.date)}</td>
-              <td>${e.kind === 'prod' ? 'Production' : (e.kind === 'tasting' ? 'Food tasting' : 'Event')}</td>
+              <td>${e.kind === 'prod' ? 'Production' : ((e.kind === 'tasting' || e.kind === 'ftnofood') ? 'Food tasting' : 'Event')}</td>
               <td>${escapeHtml(e.title)}${e.person ? ' · ' + escapeHtml(e.person) : ''}</td>
             </tr>`).join('')}
         </tbody>
@@ -7825,6 +7940,7 @@ function initApp(){
       }, '', false);
     });
     grocListEl.innerHTML = html;
+    renderFtGrocery();
     renderGrocLog();
   }
   wireFolderClicks(grocListEl, ()=>renderGrocery());
@@ -7953,7 +8069,7 @@ function initApp(){
         date: new Date().toISOString(),
         user: currentUser || 'Unnamed user',
         role: ROLE_LABELS[currentRole] || currentRole,
-        action, pkgName: pkg.name || '', soNumber: pkg.soNumber || '',
+        action, pkgName: pkg.name || '', soNumber: pkg.soNumber || '', eventDate: pkgDate(pkg),
         pax: pkg.pax || 0, pricePerPax: pkg.pricePerPax || 0, grandTotal: pkg.grandTotal || 0, note
       });
       if(pkgHistory.length > 500) pkgHistory.length = 500;
@@ -7961,6 +8077,7 @@ function initApp(){
     }catch(e){ console.warn('Package history save failed', e); }
     renderPkgHistory();
   }
+  function pkgHistDate(h){ if(h.eventDate) return h.eventDate; const p = packages.find(x => x.name === h.pkgName && (x.soNumber || '') === (h.soNumber || '')); return p ? pkgDate(p) : ''; }
   function renderPkgHistory(){
     const wrap = document.getElementById('pkgHistoryWrap');
     const panel = document.getElementById('pkgHistoryPanel');
@@ -7981,9 +8098,315 @@ function initApp(){
         <td class="num">${h.pax || '—'}</td>
         <td class="num">${PHP(h.pricePerPax || 0)}</td>
         <td class="num">${PHP(h.grandTotal || 0)}</td>
-        <td style="font-size:12px;color:var(--ink-soft);">${escapeHtml(h.note || '')}</td>
+        <td style="font-size:12px;color:var(--ink-soft);">${pkgHistDate(h) ? '<b>📅 Event date: ' + escapeHtml(fmtIso(pkgHistDate(h))) + '</b>' + (h.note ? '<br>' : '') : ''}${escapeHtml(h.note || '')}</td>
       </tr>`).join('') + '</tbody></table>';
   }
+
+  // =====================================================================
+  // FOOD TASTING MODULE (tab 7)
+  //   Stored in the shared database (kv keys below). Calendar entries are
+  //   DERIVED from this list, so a food tasting can never collide with /
+  //   duplicate a calendar record, whether the open-slot filter is on or off.
+  // =====================================================================
+  const FT_KEY = 'kitchen-food-tastings', FT_HIST_KEY = 'kitchen-ft-history';
+  const FT_CATS = ['Appetizer','Bread','Soup','Salad','Pasta','Beef','Pork','Chicken','Seafood','Vegetables','Paella / Starch','Dessert','Beverage','Other'];
+  let foodTastings = [], ftHistory = [], ftEditId = null, ftDate = '', ftEnforce = true, ftCur = new Date(), ftFormReady = false;
+  const ftEsc = escapeHtml;
+  const ftNoFood = f => !(f.foods || []).some(x => x.description);
+  const ftDone = f => new Date(f.date + 'T' + (f.time || '23:59') + ':00') <= new Date();
+  const ftNeedsEval = f => !f.evaluation && ftDone(f);
+  function ftDueIso(f){ const d = isoToDate(f.date); d.setDate(d.getDate() - 3); return dateToIso(d); }
+  function ftAlerts(){ return { ev: foodTastings.filter(ftNeedsEval), nf: foodTastings.filter(f => !f.evaluation && ftNoFood(f)) }; }
+  window.ftEvalCount = () => ftAlerts().ev.length;
+
+  async function ftRead(){ try{ const r = await window.storage.get(FT_KEY); const a = r && r.value ? JSON.parse(r.value) : []; return Array.isArray(a) ? a : []; }catch(e){ return null; } }
+  async function ftMutate(fn){ const cur = (await ftRead()) || foodTastings; const out = fn(cur) || cur; foodTastings = out; await window.storage.set(FT_KEY, JSON.stringify(out)); }
+  async function loadFoodTastings(){ const a = await ftRead(); if(a) foodTastings = a; try{ renderCalendar(); renderFtAll(); renderSideNav(); }catch(e){} }
+  function ftQuietReload(){ return loadFoodTastings(); }
+
+  // ---------- history ----------
+  async function loadFtHistory(){ try{ const r = await window.storage.get(FT_HIST_KEY); const a = r && r.value ? JSON.parse(r.value) : []; ftHistory = Array.isArray(a) ? a : []; }catch(e){ ftHistory = []; } renderFtHistory(); }
+  async function ftLog(action, f, note){
+    try{
+      let a = []; try{ const r = await window.storage.get(FT_HIST_KEY); a = r && r.value ? JSON.parse(r.value) : []; }catch(e){}
+      if(!Array.isArray(a)) a = [];
+      a.unshift({ id:'fh-' + Date.now() + Math.random().toString(36).slice(2,6), date:new Date().toISOString(), user:currentUser || 'Unnamed user', role:ROLE_LABELS[currentRole] || currentRole, action, sales:f.sales || '', pkg:f.packageName || '', ftDate:f.date || '', time:f.time || '', pax:f.pax || 0, note:note || '' });
+      if(a.length > 500) a.length = 500;
+      ftHistory = a; await window.storage.set(FT_HIST_KEY, JSON.stringify(a));
+    }catch(e){ console.warn('FT history failed', e); }
+    renderFtHistory();
+  }
+  function renderFtHistory(){
+    const el = document.getElementById('ftHistoryPanel'); if(!el) return;
+    if(!ftHistory.length){ el.innerHTML = '<div class="empty-state">No food tasting activity yet.</div>'; return; }
+    const col = { Added:'#E1F0DC;color:#255A1F', Edited:'#DCE8F7;color:#1C4A82', Deleted:'#F6DAD5;color:#8A2E1A', Evaluated:'#F3E7C2;color:#6B5200' };
+    el.innerHTML = '<table class="proc-table" style="table-layout:auto;"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Food tasting</th><th class="num">Pax</th><th>Details</th></tr></thead><tbody>' +
+      ftHistory.map(h => '<tr><td style="white-space:nowrap;">' + new Date(h.date).toLocaleString('en-PH', {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'}) + '</td>' +
+      '<td><b>' + ftEsc(h.user || '') + '</b><div style="font-size:11px;color:var(--steel);">' + ftEsc(h.role || '') + '</div></td>' +
+      '<td><span style="display:inline-block;padding:3px 10px;border-radius:99px;font-weight:700;font-size:12px;background:' + (col[h.action] || '#eee') + ';">' + ftEsc(h.action) + '</span></td>' +
+      '<td>' + ftEsc(h.pkg || '—') + '<div style="font-size:11px;color:var(--steel);">Sales: ' + ftEsc(h.sales || '—') + '</div></td><td class="num">' + (h.pax || '—') + '</td>' +
+      '<td style="font-size:12px;"><b>' + (h.ftDate ? '📅 FT date: ' + ftEsc(fmtIso(h.ftDate)) + (h.time ? ' · ' + ftEsc(h.time) : '') : '') + '</b>' + (h.note ? '<br>' + ftEsc(h.note) : '') + '</td></tr>').join('') + '</tbody></table>';
+  }
+
+  // ---------- calendar link ----------
+  function ftCalEntries(){
+    return foodTastings.filter(f => f.date).map(f => ({ id:'ft|' + f.id, date:f.date, kind: ftNoFood(f) ? 'ftnofood' : 'tasting',
+      title:'FT' + (f.time ? ' ' + f.time : '') + ' · ' + (f.packageName || f.sales || 'Food tasting') + (ftNoFood(f) ? ' ⚠ no food list' : ''), person:f.sales || '' }));
+  }
+  function ftBannerHtml(){
+    const a = ftAlerts(); let h = '';
+    if(a.ev.length) h += '<div class="ft-b ev">🔔 <b>' + a.ev.length + ' food tasting' + (a.ev.length > 1 ? 's' : '') + ' done — needs evaluation:</b> ' + a.ev.map(f => ftEsc((f.packageName || f.sales) + ' (' + shortDate(f.date) + ')')).join(', ') + ' <button type="button" data-ftgo="eval">Evaluate now</button></div>';
+    if(a.nf.length) h += '<div class="ft-b nf">⚠ <b>' + a.nf.length + ' food tasting' + (a.nf.length > 1 ? 's have' : ' has') + ' NO food list yet</b> — chef discretion if not placed 3 days before: ' + a.nf.map(f => ftEsc((f.packageName || f.sales) + ' (' + shortDate(f.date) + ', list due ' + shortDate(ftDueIso(f)) + ')')).join(', ') + ' <button type="button" data-ftgo="saved">Open</button></div>';
+    return h;
+  }
+  function ftRenderBanners(){
+    const h = ftBannerHtml();
+    ['ftGlobalBanner','calFtWarn','ftBanners'].forEach(id => { const e = document.getElementById(id); if(!e) return; e.innerHTML = h; e.style.display = h ? 'block' : 'none'; e.querySelectorAll('[data-ftgo]').forEach(b => b.onclick = () => goTab('foodtasting', b.dataset.ftgo)); });
+  }
+  function ftShowDetail(id){
+    const f = foodTastings.find(x => x.id === id); if(!f) return;
+    document.getElementById('calModalTitle').textContent = 'Food tasting';
+    document.getElementById('calModalBody').innerHTML = ftDetailHtml(f);
+    document.getElementById('calSaveBtn').style.display = 'none'; document.getElementById('calDeleteBtn').style.display = 'none';
+    document.getElementById('calOverlay').style.display = 'flex';
+  }
+  function ftDetailHtml(f){
+    const ev = f.evaluation;
+    const rows = (f.foods || []).filter(x => x.description).map(x => '<tr><td>' + ftEsc(x.category || '') + '</td><td>' + ftEsc(x.description) + '</td><td class="num">' + PHP(x.price) + '</td><td class="num">' + PHP(x.charged) + '</td></tr>').join('');
+    return '<p style="margin:0 0 8px;"><b>' + ftEsc(f.packageName || 'Food tasting') + '</b> · ' + (f.pax || 0) + ' pax<br>📅 ' + ftEsc(fmtIso(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + ' · Sales: ' + ftEsc(f.sales || '—') + ' · ' + (f.status === 'booked' ? 'BOOKED' : 'WAITING') + '</p>' +
+      (ftNoFood(f) ? '<div class="ft-b nf">⚠ No food list yet — due ' + ftEsc(fmtIso(ftDueIso(f))) + ' (3 days before). Filed for chef discretion.</div>' : '<table class="proc-table" style="width:100%;font-size:12.5px;"><thead><tr><th>Category</th><th>Dish</th><th class="num">Input</th><th class="num">Selling</th></tr></thead><tbody>' + rows + '</tbody></table>') +
+      (ev ? '<div class="ft-b ok" style="margin-top:10px;">✓ Closed · ' + (ev.outcome === 'booked' ? 'BOOKED — event date ' + ftEsc(fmtIso(ev.eventDate)) : 'WAITING TO CONFIRM — ' + ftEsc(ev.note)) + '<br><small>' + ftEsc(ev.by || '') + ' · ' + new Date(ev.at).toLocaleString('en-PH') + '</small></div>' : '');
+  }
+
+  // ---------- form ----------
+  function ftDishList(cat){
+    const k = cat.toLowerCase().split('/').map(s => s.trim());
+    const m = recipes.filter(r => { const c = (r.category || '').toLowerCase(); return k.some(x => c.includes(x) || x.includes(c)); });
+    return (m.length ? m : recipes).map(r => '<option value="' + ftEsc(r.name) + '"></option>').join('');
+  }
+  function ftBuildFoods(){
+    document.getElementById('ftFoods').innerHTML = FT_CATS.map((c, i) => '<div class="ft-cat" data-cat="' + ftEsc(c) + '"><div class="ft-cat-h"><b>' + ftEsc(c) + '</b><span class="ft-sub"></span></div><datalist id="ftdl' + i + '">' + ftDishList(c) + '</datalist><div class="ft-rows"></div><button type="button" class="ft-add" data-i="' + i + '">+ Add ' + ftEsc(c.toLowerCase()) + ' item</button></div>').join('');
+  }
+  function ftAddRow(catEl, d){
+    d = d || {}; const i = FT_CATS.indexOf(catEl.dataset.cat);
+    const r = document.createElement('div'); r.className = 'ft-row';
+    r.innerHTML = '<input type="text" class="ft-dish" list="ftdl' + i + '" placeholder="Dish / saved recipe" value="' + ftEsc(d.description || '') + '"><input type="number" class="ft-cost" min="0" step="0.01" placeholder="Input ₱" value="' + (d.price || '') + '"><div class="ft-sell">₱0.00</div><button type="button" class="rm" title="Remove">×</button>';
+    catEl.querySelector('.ft-rows').appendChild(r); ftRowSync(r, true);
+  }
+  function ftRowSync(r, keep){
+    const rec = recipes.find(x => x.name.toLowerCase() === r.querySelector('.ft-dish').value.trim().toLowerCase());
+    const c = r.querySelector('.ft-cost'); r.dataset.rid = rec ? rec.id : '';
+    c.readOnly = !!rec; if(rec) c.value = (rec.costPerPax || 0).toFixed(2); else if(!keep) c.readOnly = false;
+    r.querySelector('.ft-sell').textContent = PHP((parseFloat(c.value) || 0) * MARKUP); ftSum();
+  }
+  function ftFoodData(){
+    const out = [];
+    document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => ce.querySelectorAll('.ft-row').forEach(r => {
+      const dish = r.querySelector('.ft-dish').value.trim(); if(!dish) return;
+      const p = parseFloat(r.querySelector('.ft-cost').value) || 0;
+      out.push({ category:ce.dataset.cat, recipeId:r.dataset.rid || '', description:dish, price:p, charged:p * MARKUP });
+    }));
+    return out;
+  }
+  function ftSum(){
+    const f = ftFoodData(), inp = f.reduce((s, x) => s + x.price, 0);
+    document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => { const n = f.filter(x => x.category === ce.dataset.cat); ce.querySelector('.ft-sub').textContent = n.length + ' item' + (n.length === 1 ? '' : 's') + ' · ' + PHP(n.reduce((s, x) => s + x.charged, 0)) + ' selling'; });
+    const pax = parseInt(document.getElementById('ftPax').value) || 0;
+    document.getElementById('ftSum').innerHTML = '<div><span>Items</span><b>' + f.length + '</b></div><div><span>Input cost</span><b>' + PHP(inp) + '</b></div><div><span>Selling (×' + MARKUP + ')</span><b>' + PHP(inp * MARKUP) + '</b></div><div><span>Margin</span><b>' + PHP(inp * MARKUP - inp) + '</b></div>' + (pax ? '<div><span>Selling × ' + pax + ' pax</span><b>' + PHP(inp * MARKUP * pax) + '</b></div>' : '');
+    ftFollowNote();
+  }
+  function ftFollowNote(){
+    const n = document.getElementById('ftFollowNote'), none = !ftFoodData().length, fol = document.getElementById('ftFollow').checked;
+    if(!ftDate && !none){ n.innerHTML = ''; return; }
+    if(none && !fol){ n.innerHTML = '<div class="ft-b nf">No food list entered. Add dishes above, or tick <b>TO FOLLOW</b> to save without them.</div>'; return; }
+    if(none && fol){
+      const late = ftDate && ftDueIso({ date:ftDate }) < calTodayIso();
+      n.innerHTML = '<div class="ft-b nf">🔔 Reminder: the food list must be placed at least <b>3 days before</b> the tasting' + (ftDate ? ' — by <b>' + ftEsc(fmtIso(ftDueIso({ date:ftDate }))) + '</b>' : '') + '. ' + (late ? '<b>That deadline has already passed — this will be filed for chef discretion (late food list).</b>' : 'It will be filed in the red “No food list” folder for chef discretion.') + '</div>';
+    } else n.innerHTML = '';
+  }
+  function ftRenderPicker(){
+    const el = document.getElementById('ftPicker'); if(!el) return;
+    const y = ftCur.getFullYear(), m = ftCur.getMonth(), t = calTodayIso(), first = new Date(y, m, 1).getDay(), dim = new Date(y, m + 1, 0).getDate(), cells = Math.ceil((first + dim) / 7) * 7, ents = calAllEntries();
+    let h = '<div class="ftp-head"><button type="button" data-ftnav="-1">‹</button><b>' + MONTH_NAMES[m] + ' ' + y + '</b><button type="button" data-ftnav="1">›</button></div><div class="ftp-wd">' + ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => '<div>' + d + '</div>').join('') + '</div><div class="ftp-grid">';
+    for(let i = 0; i < cells; i++){
+      const c = calCellInfo(i, y, m), st = calStatuses[c.iso], ok = !ftEnforce || (st === 'open' && c.iso >= t), ev = ents.filter(e => e.date === c.iso);
+      h += '<div class="ftp-cell ' + (c.out ? 'out ' : '') + (st || 'none') + (ok ? '' : ' blocked') + (ftDate === c.iso ? ' sel' : '') + '" data-ftday="' + c.iso + '"><div class="ftp-top"><span>' + c.date + '</span><i>' + (st === 'open' ? 'Open' : st === 'closed' ? 'Closed' : '') + '</i></div>' +
+        ev.slice(0, 3).map(e => '<div class="cal-chip ' + e.kind + '" title="' + ftEsc(e.title) + '">' + ftEsc(e.title) + '</div>').join('') + (ev.length > 3 ? '<div class="ftp-more">+' + (ev.length - 3) + ' more</div>' : '') + '</div>';
+    }
+    el.innerHTML = h + '</div>';
+    const st = calStatuses[ftDate];
+    document.getElementById('ftPickInfo').innerHTML = ftDate ? '<div class="ft-b ' + (st === 'open' ? 'ok' : 'nf') + '">Selected: <b>' + ftEsc(fmtIso(ftDate)) + '</b> — ' + (st === 'open' ? 'Open slot ✓' : (st === 'closed' ? 'Closed day (override: Open-slot filter is OFF — it is still saved to the calendar)' : 'Not marked (override: Open-slot filter is OFF — still saved to the calendar)')) + '</div>' : '<div class="ft-hint">' + (ftEnforce ? 'Only <b>Open</b> days can be picked. Closed / unmarked days are locked.' : 'Open-slot filter is OFF — any day can be picked. The tasting is still inserted in the calendar.') + '</div>';
+  }
+  function ftInitForm(){
+    if(ftFormReady) return; ftFormReady = true; ftBuildFoods();
+    document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => ftAddRow(ce));
+    const foods = document.getElementById('ftFoods');
+    foods.addEventListener('input', e => { const r = e.target.closest('.ft-row'); if(r) ftRowSync(r, !e.target.classList.contains('ft-dish')); });
+    foods.addEventListener('click', e => {
+      if(e.target.classList.contains('ft-add')) ftAddRow(e.target.closest('.ft-cat'));
+      if(e.target.classList.contains('rm')){ const r = e.target.closest('.ft-row'), box = r.parentElement; r.remove(); if(!box.children.length) ftAddRow(box.closest('.ft-cat')); ftSum(); }
+    });
+    const pk = document.getElementById('ftPicker');
+    pk.addEventListener('click', e => {
+      const nv = e.target.closest('[data-ftnav]'); if(nv){ ftCur = new Date(ftCur.getFullYear(), ftCur.getMonth() + (+nv.dataset.ftnav), 1); ftRenderPicker(); return; }
+      const d = e.target.closest('[data-ftday]'); if(!d) return;
+      if(d.classList.contains('blocked')){ const m = document.getElementById('ftMsg'); m.className = 'form-msg err'; m.textContent = 'That day is not an Open slot. Turn the Open-slot filter off to pick it anyway.'; return; }
+      document.getElementById('ftMsg').textContent = ''; ftDate = d.dataset.ftday; ftRenderPicker(); ftFollowNote();
+    });
+    document.getElementById('ftEnforce').addEventListener('change', e => { ftEnforce = e.target.checked; ftRenderPicker(); });
+    document.getElementById('ftFollow').addEventListener('change', ftFollowNote);
+    document.getElementById('ftPax').addEventListener('input', ftSum);
+    ['ftStBooked','ftStWaiting'].forEach(id => document.getElementById(id).addEventListener('change', e => { if(e.target.checked) document.getElementById(id === 'ftStBooked' ? 'ftStWaiting' : 'ftStBooked').checked = false; }));
+    document.getElementById('ftSaveBtn').addEventListener('click', ftSave);
+    document.getElementById('ftResetBtn').addEventListener('click', () => ftReset());
+  }
+  function ftReset(){
+    ftEditId = null; ftDate = ''; ftEnforce = true;
+    ['ftPax','ftTime'].forEach(id => document.getElementById(id).value = ''); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = false);
+    document.getElementById('ftSales').value = currentUser || '';
+    ['ftStBooked','ftStWaiting','ftFollow'].forEach(id => document.getElementById(id).checked = false);
+    document.getElementById('ftEnforce').checked = true;
+    ftBuildFoods(); document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => ftAddRow(ce));
+    document.getElementById('ftFormTitle').textContent = 'FOOD TASTING — NEW ENTRY'; document.getElementById('ftSaveBtn').textContent = 'Save food tasting';
+    ftRenderPicker(); ftSum();
+  }
+  function ftEdit(id){
+    const f = foodTastings.find(x => x.id === id); if(!f || f.evaluation) return;
+    goTab('foodtasting', 'input'); ftInitForm(); ftReset(); ftEditId = id; ftDate = f.date; ftCur = isoToDate(f.date);
+    document.getElementById('ftSales').value = f.sales || ''; document.getElementById('ftPax').value = f.pax || ''; { const pt = f.packageTypes || (f.packageName || '').split(/\s*[,+]\s*/); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = pt.includes(c.value)); } document.getElementById('ftTime').value = f.time || '';
+    document.getElementById('ftStBooked').checked = f.status === 'booked'; document.getElementById('ftStWaiting').checked = f.status === 'waiting'; document.getElementById('ftFollow').checked = !!f.foodToFollow;
+    ftBuildFoods(); (f.foods || []).forEach(x => ftAddRow(document.querySelector('#ftFoods .ft-cat[data-cat="' + x.category + '"]') || document.querySelector('#ftFoods .ft-cat:last-child'), x));
+    document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => { if(!ce.querySelector('.ft-row')) ftAddRow(ce); });
+    document.getElementById('ftFormTitle').textContent = 'FOOD TASTING — EDITING'; document.getElementById('ftSaveBtn').textContent = 'Update food tasting';
+    ftRenderPicker(); ftSum(); window.scrollTo(0, 0);
+  }
+  async function ftSave(){
+    const msg = document.getElementById('ftMsg'), bad = t => { msg.className = 'form-msg err'; msg.textContent = t; };
+    const sales = document.getElementById('ftSales').value.trim(), pax = parseInt(document.getElementById('ftPax').value) || 0, pkgTypes = [...document.querySelectorAll('.ftPkgCb:checked')].map(c => c.value), pkg = pkgTypes.join(', '), time = document.getElementById('ftTime').value;
+    const booked = document.getElementById('ftStBooked').checked, waiting = document.getElementById('ftStWaiting').checked, foods = ftFoodData(), follow = document.getElementById('ftFollow').checked;
+    if(!sales) return bad('Enter the name of sales.'); if(!(pax > 0)) return bad('Enter the pax.'); if(!pkg) return bad('Tick at least one package.'); if(!time) return bad('Enter the time.'); if(!ftDate) return bad('Pick the date from the calendar.');
+    if(!booked && !waiting) return bad('Tick a status: BOOKED or WAITING.');
+    if(!foods.length && !follow){ ftFollowNote(); return bad('No food list: add dishes, or tick TO FOLLOW.'); }
+    const btn = document.getElementById('ftSaveBtn'); btn.disabled = true; btn.textContent = 'Saving…';
+    try{
+      const rec = { sales, pax, packageName:pkg, packageTypes:pkgTypes, time, date:ftDate, eventDate:ftDate, status: booked ? 'booked' : 'waiting', foods, foodToFollow: !foods.length };
+      let note = '', action = 'Added', saved;
+      await ftMutate(list => {
+        if(ftEditId){
+          const f = list.find(x => x.id === ftEditId); if(!f || f.evaluation) return list; action = 'Edited';
+          const ch = []; if(f.date !== rec.date) ch.push('date ' + f.date + ' → ' + rec.date); if(f.time !== rec.time) ch.push('time ' + f.time + ' → ' + rec.time); if(f.pax !== rec.pax) ch.push('pax ' + f.pax + ' → ' + rec.pax); if(f.status !== rec.status) ch.push('status ' + f.status + ' → ' + rec.status); if(ftNoFood(f) && foods.length) ch.push('food list added');
+          note = ch.join('; '); Object.assign(f, rec, { updatedAt:new Date().toISOString(), updatedBy:currentUser || '' }); saved = f;
+        } else { saved = Object.assign({ id:'ft' + Date.now() + Math.random().toString(16).slice(2,6), createdAt:new Date().toISOString(), createdBy:currentUser || '', evaluation:null }, rec); list.push(saved); }
+        return list;
+      });
+      if(!saved) return bad('This food tasting was closed by an evaluation and can no longer be edited.');
+      if(!foods.length) note = (note ? note + '; ' : '') + 'NO FOOD LIST — to follow (due ' + dateToIso(new Date(isoToDate(rec.date).getTime() - 3 * 864e5)) + ')';
+      await ftLog(action, saved, note);
+      folderOpen.add('ft|m|' + rec.date.slice(0, 7)); if(!foods.length) folderOpen.add('ft|nofood');
+      ftReset(); msg.className = 'form-msg ok'; msg.textContent = 'Saved ✓ — it is now in Saved Food Tasting and on the calendar.';
+      renderCalendar(); renderFtAll(); renderSideNav();
+    } finally { btn.disabled = false; btn.textContent = ftEditId ? 'Update food tasting' : 'Save food tasting'; }
+  }
+
+  // ---------- saved list + dashboard ----------
+  function ftDashHtml(){
+    const L = foodTastings, open = L.filter(f => !f.evaluation);
+    const wc = L.filter(f => f.evaluation && f.evaluation.outcome === 'waiting-confirm').length, bk = L.filter(f => f.evaluation && f.evaluation.outcome === 'booked').length;
+    const card = (k, v, c) => '<div class="kpi"><div class="k-label">' + k + '</div><div class="k-value" ' + (c ? 'style="color:' + c + '"' : '') + '>' + v + '</div></div>';
+    const mon = {}; L.forEach(f => { const k = f.date.slice(0, 7); const m = mon[k] = mon[k] || { b:0, w:0, wc:0, cb:0, t:0 }; m.t++; if(f.evaluation) f.evaluation.outcome === 'booked' ? m.cb++ : m.wc++; else f.status === 'booked' ? m.b++ : m.w++; });
+    const ks = Object.keys(mon).sort().reverse();
+    return '<div class="kpi-row kpi-row-4" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">' + card('BOOKED (FT)', open.filter(f => f.status === 'booked').length) + card('WAITING (FT)', open.filter(f => f.status === 'waiting').length) + card('WAITING TO CONFIRM', wc) + card('CONFIRMED BOOKING', bk) + card('NO FOOD LIST', ftAlerts().nf.length, '#A63A2E') + card('TOTAL FT', L.length) + '</div>' +
+      (ks.length ? '<div class="card" style="padding:0;overflow:auto;margin-bottom:16px;"><table class="proc-table" style="table-layout:auto;"><thead><tr><th>Month</th><th class="num">Booked</th><th class="num">Waiting</th><th class="num">Waiting to confirm</th><th class="num">Confirmed booking</th><th class="num">Total FT</th></tr></thead><tbody>' + ks.map(k => { const m = mon[k]; return '<tr><td>' + ftEsc(monthLabel(k)) + '</td><td class="num">' + m.b + '</td><td class="num">' + m.w + '</td><td class="num">' + m.wc + '</td><td class="num">' + m.cb + '</td><td class="num"><b>' + m.t + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '');
+  }
+  function ftCardHtml(f){
+    const nf = ftNoFood(f), ev = f.evaluation, due = ftNeedsEval(f);
+    return '<div class="recipe-item' + (nf && !ev ? ' ft-red' : '') + '" data-id="' + f.id + '"><div><span class="cat-tag date-tag">📅 ' + ftEsc(fmtIso(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + '</span> <span class="cat-tag">' + (ev ? (ev.outcome === 'booked' ? '✓ CLOSED · BOOKED ' + ftEsc(fmtIso(ev.eventDate)) : '✓ CLOSED · WAITING TO CONFIRM') : (f.status === 'booked' ? 'BOOKED' : 'WAITING')) + '</span> <span class="cat-tag">' + (f.pax || 0) + ' pax</span>' +
+      (nf ? ' <span class="cat-tag ft-redtag">⚠ NO FOOD LIST — due ' + ftEsc(shortDate(ftDueIso(f))) + '</span>' : ' <span class="cat-tag">' + f.foods.length + ' dishes</span>') + (due ? ' <span class="cat-tag ft-redtag">🔔 needs evaluation</span>' : '') +
+      '<div class="rname">' + ftEsc(f.packageName || 'Food tasting') + '</div><div class="rmeta">Sales: ' + ftEsc(f.sales || '—') + (ev && ev.outcome === 'waiting-confirm' ? ' · Result: ' + ftEsc(ev.note) : '') + '</div></div>' +
+      '<div class="ft-acts"><button type="button" class="print-btn" data-ftact="view">View</button>' + (!ev && canEdit() ? '<button type="button" class="print-btn" data-ftact="edit">Edit</button>' : '') + (due && canEdit() ? '<button type="button" class="save-btn" style="width:auto;margin:0;padding:8px 14px;" data-ftact="eval">Evaluate</button>' : '') + (canDeletePackage() ? '<button type="button" class="print-btn" data-ftact="del">Delete</button>' : '') + '</div></div>';
+  }
+  function renderFtSaved(){
+    const el = document.getElementById('ftSavedList'); if(!el) return;
+    document.getElementById('ftDash').innerHTML = ftDashHtml();
+    if(!foodTastings.length){ el.innerHTML = '<div class="empty-state">No food tastings saved yet.</div>'; return; }
+    const nf = foodTastings.filter(f => !f.evaluation && ftNoFood(f)).sort(newestFirst), rest = foodTastings.filter(f => !(!f.evaluation && ftNoFood(f)));
+    let h = nf.length ? folderHtml('ft|nofood', '⚠️', 'No food items / incomplete details', nf.length, () => '<div class="ft-b nf">⚠ These food tastings still have no food list. The list must be placed 3 days before the date — chef discretion if late.</div>' + nf.map(ftCardHtml).join(''), 'ft-redf', false) : '';
+    groupByMonth(rest).months.forEach(mo => {
+      const mode = folderModes['ft|' + mo.key] || 'all';
+      h += folderHtml('ft|m|' + mo.key, '📁', mo.label, mo.items.length, () => mode === 'all' ? modeBarHtml('ft', mo.key, mode) + mo.items.sort(newestFirst).map(ftCardHtml).join('') :
+        modeBarHtml('ft', mo.key, mode) + groupInMonth(mo.items, mode).map(g => folderHtml('ft|' + mode[0] + '|' + mo.key + '|' + g.key, '📂', g.label, g.items.length, () => g.items.map(ftCardHtml).join(''), 'sub', false)).join(''), '', false);
+    });
+    el.innerHTML = h;
+  }
+  function renderFtEval(){
+    const el = document.getElementById('ftEvalList'); if(!el) return;
+    const L = foodTastings.filter(ftNeedsEval).sort(newestFirst);
+    if(!L.length){ el.innerHTML = '<div class="empty-state">Nothing to evaluate. Food tastings appear here once their date and time have passed; after you submit, the result is attached to the saved food tasting and it is closed.</div>'; return; }
+    el.innerHTML = '<p class="section-label" style="color:#9C9F92;">FOR EVALUATION — copies of finished food tastings that still need a result</p>' + L.map(f => '<div class="card ft-evalcard" data-id="' + f.id + '">' + ftDetailHtml(f) +
+      (canEdit() ? '<div class="ft-evform"><label><input type="radio" name="evo-' + f.id + '" value="waiting-confirm"> WAITING TO CONFIRM</label><label><input type="radio" name="evo-' + f.id + '" value="booked"> BOOKED</label>' +
+        '<div class="ft-ev-wc" style="display:none;"><label>What happened — result of this food tasting</label><textarea rows="3" class="ft-ev-note" placeholder="Client feedback, what they are deciding on…"></textarea></div>' +
+        '<div class="ft-ev-bk" style="display:none;"><label>Date of the event</label><input type="date" class="ft-ev-date"></div><div class="form-msg ft-ev-msg"></div>' +
+        '<button type="button" class="save-btn" data-ftsub="' + f.id + '" style="width:auto;padding:10px 18px;">Confirm &amp; close</button><small style="display:block;color:var(--steel);margin-top:6px;">Once submitted it is closed and can no longer be edited.</small></div>' : '<p class="pkgf-note">Ask Sales, a Manager or the Admin to evaluate it.</p>') + '</div>').join('');
+  }
+  function renderFtAll(){ ftRenderBanners(); renderFtSaved(); renderFtEval(); try{ if(window.__sideNavBuilt) renderSideNav(); }catch(e){} }
+  function renderFoodTasting(){
+    const p = document.getElementById('panel-foodtasting'); if(!p) return;
+    if(!canCreate() && p.dataset.view === 'input') p.dataset.view = 'saved';
+    if(p.dataset.view === 'input'){ ftInitForm(); const s = document.getElementById('ftSales'); if(s && !s.value) s.value = currentUser || ''; ftRenderPicker(); ftSum(); }
+    renderFtAll();
+  }
+  document.getElementById('ftSavedList').addEventListener('click', async e => {
+    const b = e.target.closest('[data-ftact]'); if(!b) return; const id = b.closest('[data-id]').dataset.id, a = b.dataset.ftact;
+    if(a === 'view') ftShowDetail(id); else if(a === 'edit') ftEdit(id); else if(a === 'eval') goTab('foodtasting', 'eval');
+    else if(a === 'del'){ const f = foodTastings.find(x => x.id === id); if(f && confirm('Delete this food tasting (' + (f.packageName || '') + ', ' + f.date + ')? It will be removed from the calendar.')){ await ftMutate(l => l.filter(x => x.id !== id)); await ftLog('Deleted', f, f.evaluation ? 'was closed' : ''); renderCalendar(); renderFtAll(); } }
+  });
+  wireFolderClicks(document.getElementById('ftSavedList'), renderFtSaved);
+  const ftEvalEl = document.getElementById('ftEvalList');
+  ftEvalEl.addEventListener('change', e => { const c = e.target.closest('.ft-evalcard'); if(!c || e.target.type !== 'radio') return; c.querySelector('.ft-ev-wc').style.display = e.target.value === 'waiting-confirm' ? 'block' : 'none'; c.querySelector('.ft-ev-bk').style.display = e.target.value === 'booked' ? 'block' : 'none'; });
+  ftEvalEl.addEventListener('click', async e => {
+    const b = e.target.closest('[data-ftsub]'); if(!b || !canEdit()) return; const c = b.closest('.ft-evalcard'), id = b.dataset.ftsub, msg = c.querySelector('.ft-ev-msg');
+    const o = c.querySelector('input[type=radio]:checked'); const bad = t => { msg.className = 'form-msg ft-ev-msg err'; msg.textContent = t; };
+    if(!o) return bad('Tick WAITING TO CONFIRM or BOOKED.');
+    const note = c.querySelector('.ft-ev-note').value.trim(), ed = c.querySelector('.ft-ev-date').value;
+    if(o.value === 'waiting-confirm' && !note) return bad('Describe what happened in this food tasting.'); if(o.value === 'booked' && !ed) return bad('Enter the date of the event.');
+    b.disabled = true; b.textContent = 'Saving…'; let f;
+    await ftMutate(list => { f = list.find(x => x.id === id); if(f && !f.evaluation){ f.evaluation = { outcome:o.value, note:o.value === 'waiting-confirm' ? note : '', eventDate:o.value === 'booked' ? ed : '', by:currentUser || '', at:new Date().toISOString() }; f.closed = true; } return list; });
+    if(f) await ftLog('Evaluated', f, o.value === 'booked' ? 'BOOKED — event date ' + ed : 'WAITING TO CONFIRM — ' + note);
+    renderCalendar(); renderFtAll();
+  });
+
+  // ---------- grocery (same structure as the package grocery list) ----------
+  const ftAsPkg = f => ({ id:f.id, name:(f.packageName || 'Food tasting') + ' · ' + (f.sales || ''), eventDate:f.date, pax:f.pax, foodItems:(f.foods || []).filter(x => x.description), extraFoodItems:[], soNumber:'' });
+  function renderFtGrocery(){
+    const el = document.getElementById('groceryFtList'); if(!el) return;
+    const list = foodTastings.filter(f => f.date && !ftNoFood(f)).map(ftAsPkg);
+    if(!list.length){ el.innerHTML = '<div class="empty-state">No food tastings with a food list yet.</div>'; return; }
+    let html = ''; groupByMonth(list).months.forEach(mo => {
+      const mode = folderModes['fg|' + mo.key] || 'all';
+      html += folderHtml('fg|m|' + mo.key, '📁', mo.label, mo.items.length, () => {
+        let body = modeBarHtml('fg', mo.key, mode);
+        if(mode === 'all') body += grocBlockHtml('fg|m|' + mo.key, 'Food tasting — ' + mo.label, mo.items);
+        else body += groupInMonth(mo.items, mode).map(g => { const id = 'fg|' + mode[0] + '|' + mo.key + '|' + g.key; return folderHtml(id, '📂', g.label, g.items.length, () => grocBlockHtml(id, 'Food tasting — ' + g.label, g.items), 'sub', false); }).join('');
+        return body;
+      }, '', false);
+    });
+    el.innerHTML = html;
+  }
+  const ftGrocEl = document.getElementById('groceryFtList');
+  wireFolderClicks(ftGrocEl, () => renderGrocery());
+  ftGrocEl.addEventListener('click', e => { const b = e.target.closest('[data-gprint]'); if(b) printGrocery(b.dataset.gprint); });
+
+  // ---------- Conversion feed (Admin only): everything the Conversion page can pick from ----------
+  window.openConversion = async function(){
+    if(!canManageAccess()) return;
+    const win = window.open('', '_blank'); const sources = [];
+    const add = (type, id, label, date, lines) => { const items = Object.values(lines).map(l => { const inv = inventory.find(i => i.key === l.key); return { key:l.key, name:l.name, uom:l.uom, qty:l.qty, onHand:inv ? (inv.stock || 0) : 0, price:inv ? (inv.price || 0) : 0 }; }); if(items.length) sources.push({ type, id, label, date:date || '', items }); };
+    plans.forEach(p => { const r = recipes.find(x => x.id === p.recipeId); if(!r) return; const L = {}; getMergedIngredients(r, 1).forEach(i => { const k = ingredientKey(i.name, i.uom); L[k] = { key:k, name:i.name, uom:i.uom, qty:i.qty * (p.batches || 1) }; }); add('production', 'pl-' + p.id, (p.recipeName || r.name) + (p.batchNumber ? ' #' + p.batchNumber : '') + ' · ' + (p.eventName || p.category || ''), p.batchDate, L); });
+    packages.forEach(p => { if(pkgDate(p)) add('package', 'pk-' + p.id, (p.name || 'Package') + (p.soNumber ? ' · SO# ' + p.soNumber : '') + ' · ' + (p.pax || 0) + ' pax', pkgDate(p), eventNeeds(p).lines); });
+    foodTastings.forEach(f => { if(f.date && !ftNoFood(f)){ const q = ftAsPkg(f); add('foodtasting', 'ft-' + f.id, 'FT · ' + q.name + ' · ' + (f.pax || 0) + ' pax', f.date, eventNeeds(q).lines); } });
+    try{ await window.storage.set('kitchen-conversion-feed', JSON.stringify({ generatedAt:new Date().toISOString(), by:currentUser || '', sources })); }catch(e){ if(win) win.close(); alert('Could not prepare the conversion data.'); return; }
+    if(win) win.location = 'conversion.html'; else location.href = 'conversion.html';
+  };
 
   // ---------- Home / Overview (live data; opened from the Town's Delight logo) ----------
   let homeReady = false;   // becomes true once Firestore data + calendar have loaded
@@ -8067,6 +8490,7 @@ function initApp(){
     if(masterArchiveBtn) masterArchiveBtn.style.display = canManageAccess() ? 'inline-block' : 'none';
     if(manageAccessBtn) manageAccessBtn.style.display = canManageAccess() ? 'inline-block' : 'none';
 
+    const cvBtn = document.getElementById('conversionOpenBtn'); if(cvBtn) cvBtn.style.display = canManageAccess() ? 'inline-block' : 'none';
     const creationDisabledMsg = 'Viewers cannot create or edit entries.';
     [
       'saveRecipeBtn','addIngredientBtn',
@@ -8650,6 +9074,8 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
     renderProductionList();
     renderDispatch();
     await loadCalendarEvents();
+    await loadFoodTastings();
+    loadFtHistory();
     renderCalendar();
     applyStaticAccessControl();
     homeReady = true;
@@ -8662,7 +9088,7 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
     // focus, but never while someone is mid-edit on a form (so we don't
     // yank a half-filled recipe/plan/package out from under them).
     setInterval(()=>{
-      if(!editingId && !editingProdId && !editingPkgId) syncFromFirestore();
+      if(!editingId && !editingProdId && !editingPkgId){ syncFromFirestore(); ftQuietReload(); }
     }, 45000);
     document.addEventListener('visibilitychange', ()=>{
       if(document.visibilityState === 'visible' && !editingId && !editingProdId && !editingPkgId){
@@ -8905,17 +9331,21 @@ const NAV_GROUPS = [
   { n:'Production', subs:[['production','Production Planning'],['dispatch','Dispatching']] },
   { n:'Packages', subs:[['packages','New Package','input'],['packages','Saved Packages','saved']] },
   { n:'Calendar', subs:[['calendar','Calendar']] },
-  { n:'History', subs:[['history','Inventory History','inv'],['history','Package History','pkg']] }
+  { n:'History', subs:[['history','Inventory History','inv'],['history','Package History','pkg'],['history','Food Tasting History','ft']] },
+  { n:'Food Tasting', subs:[['foodtasting','New Food Tasting','input'],['foodtasting','Saved Food Tasting','saved'],['foodtasting','For Evaluation','eval']] }
 ];
+function canSeeFtHistory(){ return currentRole !== 'viewer'; }
+function ftBadge(n){ return n > 0 ? '<span class="sn-badge" title="' + n + ' food tasting(s) need evaluation">' + n + '</span>' : ''; }
 let navView = null;   // which sub-view (input / saved / inv / pkg) is showing
 function navGroups(){
   if(isSales()) return [
     { n:'New Package',    subs:[['packages','New Package','input']] },
     { n:'Saved Packages', subs:[['packages','Saved Packages','saved']] },
     { n:'Calendar',       subs:[['calendar','Calendar']] },
-    { n:'History',        subs:[['history','Package History','pkg']] }
+    { n:'Food Tasting',   subs:[['foodtasting','New Food Tasting','input'],['foodtasting','Saved Food Tasting','saved'],['foodtasting','For Evaluation','eval']] },
+    { n:'History',        subs:[['history','Package History','pkg'],['history','Food Tasting History','ft']] }
   ];
-  return NAV_GROUPS.map(g => ({ n:g.n, subs:g.subs.filter(s => (s[2] !== 'pkg' || canSeePkgHistory()) && !(g.n === 'Packages' && s[2] === 'input' && !canCreate())) })).filter(g => g.subs.length);   // read-only levels have no package form, so no "New Package" sub-tab
+  return NAV_GROUPS.map(g => ({ n:g.n, subs:g.subs.filter(s => (s[2] !== 'pkg' || canSeePkgHistory()) && (s[2] !== 'ft' || canSeeFtHistory()) && !((g.n === 'Packages' || g.n === 'Food Tasting') && s[2] === 'input' && !canCreate())) })).filter(g => g.subs.length);   // read-only levels have no package form, so no "New Package" sub-tab
 }
 function activeTabId(){
   const a = document.querySelector('.tab-btn.active');
@@ -8933,8 +9363,9 @@ function showHome(){
   window.scrollTo(0, 0);
 }
 function goTab(id, view){
-  if(isSales() && id !== 'packages' && id !== 'history' && id !== 'calendar') return;   // Sales: Packages, package history + view-only Calendar
-  if(id === 'history'){ if(isSales() || (view === 'pkg' && canSeePkgHistory())) view = 'pkg'; else view = 'inv'; }
+  if(isSales() && id !== 'packages' && id !== 'history' && id !== 'calendar' && id !== 'foodtasting') return;   // Sales: Packages, package history + view-only Calendar
+  if(id === 'history'){ if(view === 'ft' && canSeeFtHistory()) view = 'ft'; else if(isSales() || (view === 'pkg' && canSeePkgHistory())) view = 'pkg'; else view = 'inv'; }
+  if(id === 'foodtasting'){ view = view || (canCreate() ? 'input' : 'saved'); document.getElementById('panel-foodtasting').dataset.view = view; }
   navView = view || null;
   if(id === 'history') document.getElementById('panel-history').dataset.view = view;
   if(id === 'packages') document.getElementById('panel-packages').dataset.view = view || (canCreate() ? 'input' : 'saved');
@@ -8956,14 +9387,14 @@ function renderSideNav(){
     groups.map((g,i)=>{
       const on = g.subs.some(isOn);
       const go = x => x[0] + '|' + (x[2] || '');
-      return '<button type="button" class="sn-gb' + (on ? ' on' : '') + '" data-go="' + go(g.subs[0]) + '"><span class="n">' + (i+1) + '</span>' + g.n + (g.subs.some(s => s[0] === 'grocery') ? badge(gp) : '') + '</button>' +
+      return '<button type="button" class="sn-gb' + (on ? ' on' : '') + '" data-go="' + go(g.subs[0]) + '"><span class="n">' + (i+1) + '</span>' + g.n + (g.subs.some(s => s[0] === 'grocery') ? badge(gp) : '') + (g.n === 'Food Tasting' && window.ftEvalCount ? ftBadge(window.ftEvalCount()) : '') + '</button>' +
         (on && g.subs.length > 1
-          ? '<div class="sn-subs">' + g.subs.map(x => '<button type="button" class="' + (isOn(x) ? 'on' : '') + '" data-go="' + go(x) + '">' + x[1] + (x[0] === 'grocery' ? badge(gp) : '') + '</button>').join('') + '</div>'
+          ? '<div class="sn-subs">' + g.subs.map(x => '<button type="button" class="' + (isOn(x) ? 'on' : '') + '" data-go="' + go(x) + '">' + x[1] + (x[0] === 'grocery' ? badge(gp) : '') + (x[2] === 'eval' && window.ftEvalCount ? ftBadge(window.ftEvalCount()) : '') + '</button>').join('') + '</div>'
           : '');
     }).join('') +
         '<div class="sn-user"><b>' + (currentRole === 'viewer' ? '👁 ' : '🧑‍🍳 ') + String(currentUser).replace(/[<>&]/g, '') + '</b><small>' + roleLabel + '</small><button type="button" id="sideLogoutBtn">LOGOUT</button></div>';
   side.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', ()=>{ const p = b.dataset.go.split('|'); goTab(p[0], p[1] || undefined); }));
-  document.getElementById('sideLogoutBtn').addEventListener('click', ()=> location.reload());
+  document.getElementById('sideLogoutBtn').addEventListener('click', doLogout);
 }
 function buildSideNav(){
   window.__sideNavBuilt = true;
@@ -8971,7 +9402,15 @@ function buildSideNav(){
   const tabs = document.querySelector('.tabs');
   if(tabs) new MutationObserver(renderSideNav).observe(tabs, { attributes:true, subtree:true, attributeFilter:['class'] });
 }
-document.getElementById('logoutBtn').addEventListener('click', ()=>location.reload());
+// Login lives in memory only: refreshing, closing the tab, or pressing LOGOUT always returns to the login screen.
+function doLogout(){
+  try{ sessionStorage.clear(); }catch(e){}
+  currentRole = 'viewer'; currentUser = ''; currentAccountId = null; CREDS = null;
+  location.replace(location.pathname);
+}
+window.addEventListener('pageshow', ev => { if(ev.persisted) location.reload(); });   // back/forward cache must never bring a session back
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('conversionOpenBtn').addEventListener('click', () => window.openConversion && window.openConversion());
 
 checkAccess();
 </script>
