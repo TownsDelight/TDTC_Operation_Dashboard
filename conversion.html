@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversion — Town's Delight</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#F9F5EA;--ink:#25221C;--soft:#6B6558;--rust:#B5522B;--green:#2F6B3A;--line:#E3D9C2;--card:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 'DM Sans',system-ui,sans-serif;padding:0 0 70px}
+header{background:#25221C;color:#F5E3C3;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:20px}header small{color:#C9BFA8}
+main{max-width:1100px;margin:0 auto;padding:22px 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:#fff;padding:8px 14px;font-weight:600}
+button.p{background:var(--rust);color:#fff;border-color:var(--rust)}button:disabled{opacity:.45;cursor:not-allowed}
+input,select{font:inherit;padding:8px;border:1px solid #ccc;border-radius:6px;width:100%}
+.steps{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.steps span{padding:7px 14px;border-radius:99px;background:#EDE6D3;font-weight:700;font-size:13px}.steps .on{background:var(--rust);color:#fff}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}th{font-size:11px;text-transform:uppercase;color:var(--soft)}.n{text-align:right;font-variant-numeric:tabular-nums}
+.wrap{overflow-x:auto}.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.tabs button.on{background:#25221C;color:#fff}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700}.ok{background:#E1F0DC;color:#255A1F}.no{background:#FBE3DF;color:#8A2E1A}
+.src{display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line)}.src input{width:auto}.src small{color:var(--soft)}
+.bar{height:8px;background:#EDE6D3;border-radius:9px;overflow:hidden;margin:6px 0 12px}.bar i{display:block;height:100%;background:var(--green)}
+.cat td{background:#F3EAD3;font-weight:700}.msg{color:#A63A2E;margin-top:8px}
+.sm{width:90px}@media print{header,.steps,.noprint{display:none!important}body{background:#fff}}
+</style></head><body>
+<header><div><h1>🔄 Conversion — purchase list builder</h1><small id="meta">Admin only</small></div><button onclick="location.href='index.html'">← Back to the app</button></header>
+<main>
+<div id="gate" class="card" style="max-width:420px;margin:40px auto;"><h3 style="margin-top:0">Admin sign-in</h3>
+<p style="color:var(--soft)">This page is for the Admin account only.</p>
+<input type="password" id="pw" placeholder="Admin password"><div class="msg" id="gmsg"></div><br><button class="p" id="go">Sign in</button></div>
+<div id="app" style="display:none">
+<div class="steps"><span id="s1" class="on">1 · Pick data</span><span id="s2">2 · Convert units</span><span id="s3">3 · Ready to purchase</span></div>
+<div id="v1"></div><div id="v2" style="display:none"></div><div id="v3" style="display:none"></div></div>
+</main>
+<script>
+const sb=supabase.createClient("https://jwsheetcjylwzbypyhzz.supabase.co","sb_publishable_YDuRUW56txYTpgukP7hx5Q_AzNho0at");
+const kv=async k=>{const {data}=await sb.from('kv').select('value').eq('key',k).maybeSingle();return data?data.value:null};
+const kvSet=(k,v)=>sb.from('kv').upsert({key:k,value:v},{onConflict:'key'});
+const b64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function verify(c,pw){const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
+ const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:b64(c.s),iterations:c.i||120000,hash:'SHA-256'},key,256);
+ return btoa(String.fromCharCode(...new Uint8Array(bits)))===c.h}
+const PHP=n=>'₱'+(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const Q=n=>(n||0).toLocaleString('en-PH',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let feed=null,specs={},picked=new Set(),tab='production',lines=[],subtract=true;
+const TYPES={production:'Production Planning',package:'Package Grocery',foodtasting:'Food Tasting Grocery'};
+const COUNT=['pcs','pack','can','box','dozen','bundle'];
+function show(n){[1,2,3].forEach(i=>{document.getElementById('v'+i).style.display=i==n?'block':'none';document.getElementById('s'+i).className=i==n?'on':''})}
+
+document.getElementById('go').onclick=async()=>{
+ const m=document.getElementById('gmsg');m.textContent='';
+ try{const raw=await kv('kitchen-access-credentials');const c=raw&&JSON.parse(raw).admin;
+  if(!c||!(await verify(c,document.getElementById('pw').value))){m.textContent='Incorrect admin password.';return}
+  document.getElementById('pw').value='';
+  const f=await kv('kitchen-conversion-feed');if(!f){m.textContent='No data yet. Open this page from the app’s 🔄 Conversion button.';return}
+  feed=JSON.parse(f);const sp=await kv('kitchen-conversion-specs');specs=sp?JSON.parse(sp):{};
+  document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';
+  document.getElementById('meta').textContent='Data prepared '+new Date(feed.generatedAt).toLocaleString('en-PH')+' by '+(feed.by||'Admin')+' · reopen from the app to refresh';
+  step1()}catch(e){m.textContent='Could not reach the database.'}};
+document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('go').click()});
+
+function step1(){
+ show(1);const list=feed.sources.filter(s=>s.type===tab).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+ document.getElementById('v1').innerHTML='<div class="card"><div class="tabs">'+Object.keys(TYPES).map(t=>'<button class="'+(t===tab?'on':'')+'" onclick="tab=\''+t+'\';step1()">'+TYPES[t]+' ('+feed.sources.filter(s=>s.type===t).length+')</button>').join('')+'</div>'+
+ '<div style="margin-bottom:8px"><button onclick="selAll(true)">Select all</button> <button onclick="selAll(false)">Clear</button></div>'+
+ (list.length?list.map(s=>'<label class="src"><input type="checkbox" '+(picked.has(s.id)?'checked':'')+' onchange="tog(\''+s.id+'\',this.checked)"><div><b>'+esc(s.label)+'</b><br><small>'+(s.date?'📅 '+s.date+' · ':'')+s.items.length+' ingredients</small></div></label>').join(''):'<p style="color:var(--soft)">Nothing saved here yet.</p>')+
+ '</div><button class="p" id="nx" '+(picked.size?'':'disabled')+' onclick="step2()">Convert '+picked.size+' selected →</button>'}
+function tog(id,on){on?picked.add(id):picked.delete(id);step1()}
+function selAll(on){feed.sources.filter(s=>s.type===tab).forEach(s=>on?picked.add(s.id):picked.delete(s.id));step1()}
+
+function build(){const a={};feed.sources.filter(s=>picked.has(s.id)).forEach(s=>s.items.forEach(i=>{const x=a[i.key]=a[i.key]||{key:i.key,name:i.name,uom:i.uom,qty:0,onHand:i.onHand,price:i.price,from:new Set(),dates:new Set()};x.qty+=i.qty;x.from.add(s.label);if(s.date)x.dates.add(s.date)}));
+ lines=Object.values(a).sort((x,y)=>x.name.localeCompare(y.name))}
+function calc(l){const sp=specs[l.key]||{};const need=Math.max(0,l.qty-(subtract?l.onHand:0));
+ const cnt=COUNT.includes(l.uom);let size=parseFloat(sp.size)||0;
+ if(!cnt&&size&&(l.uom==='g'||l.uom==='mL'))size*=1000;
+ const box=parseInt(sp.box)||0;let pcs=null,boxes=null,ready=false;
+ if(cnt){pcs=Math.ceil(need);ready=need===0||true}
+ else if(size>0){pcs=Math.ceil(need/size);ready=true}
+ if(ready&&pcs!==null&&box>0)boxes=Math.ceil(pcs/box);
+ return{need,pcs,boxes,ready,cost:need*l.price,box}}
+function step2(){build();show(2);
+ const done=lines.filter(l=>calc(l).ready).length;
+ document.getElementById('v2').innerHTML='<div class="card"><b>'+done+' of '+lines.length+' ingredients ready</b><div class="bar"><i style="width:'+(lines.length?done/lines.length*100:0)+'%"></i></div>'+
+ '<label style="display:flex;gap:8px;align-items:center;width:auto"><input type="checkbox" style="width:auto" '+(subtract?'checked':'')+' onchange="subtract=this.checked;step2()"> Subtract stock already on hand</label>'+
+ '<p style="color:var(--soft);margin:8px 0">For each item, enter how many <b>kg or liters are in 1 piece</b> (e.g. 1 can = 0.4 kg), then <b>pieces per box</b>. Saved for next time.</p>'+
+ '<div class="wrap"><table><thead><tr><th>Ingredient</th><th class="n">Needed</th><th class="n">To buy</th><th>1 pc = (kg / L)</th><th>Pcs per box</th><th class="n">Pieces</th><th class="n">Boxes</th><th></th></tr></thead><tbody>'+
+ lines.map((l,i)=>{const c=calc(l),sp=specs[l.key]||{},cnt=COUNT.includes(l.uom);return'<tr><td><b>'+esc(l.name)+'</b><br><small style="color:var(--soft)">'+esc(l.uom)+'</small></td><td class="n">'+Q(l.qty)+' '+esc(l.uom)+'</td><td class="n">'+Q(c.need)+'</td>'+
+ '<td>'+(cnt?'<small>counted in '+esc(l.uom)+'</small>':'<input class="sm" type="number" min="0" step="any" value="'+(sp.size||'')+'" onchange="setSp('+i+',\'size\',this.value)">')+'</td>'+
+ '<td><input class="sm" type="number" min="0" step="1" value="'+(sp.box||'')+'" onchange="setSp('+i+',\'box\',this.value)"></td><td class="n">'+(c.pcs??'—')+'</td><td class="n">'+(c.boxes??'—')+'</td><td><span class="chip '+(c.ready?'ok':'no')+'">'+(c.ready?'✓ ready':'needs kg/L per pc')+'</span></td></tr>'}).join('')+'</tbody></table></div></div>'+
+ '<button onclick="step1()">← Back</button> <button class="p" onclick="step3()" '+(done?'':'disabled')+'>Build purchase list →</button>'}
+async function setSp(i,f,v){const k=lines[i].key;specs[k]=Object.assign(specs[k]||{},{[f]:v});await kvSet('kitchen-conversion-specs',JSON.stringify(specs));step2()}
+
+function cat(n){const f=String(n).trim().split(/[\s\-_:,]+/)[0].toLowerCase();return f==='fresh'?'Vegetables':f==='raw'?'Raw Meats':'Grocery'}
+const SD=d=>new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+function step3(){show(3);const rows=lines.map(l=>({l,c:calc(l)}));const total=rows.reduce((s,r)=>s+r.c.cost,0);let h='';
+ ['Raw Meats','Vegetables','Grocery'].forEach(g=>{const r=rows.filter(x=>cat(x.l.name)===g);if(!r.length)return;
+  h+='<tr class="cat"><td colspan="7">'+g.toUpperCase()+'<span style="float:right;font-weight:400;font-size:12px;color:var(--soft)">'+r.length+' items · est. to buy '+PHP(r.reduce((s,x)=>s+x.c.cost,0))+'</span></td></tr>'+
+  r.map(x=>{const u=esc(x.l.uom),buy=x.c.need>0;return'<tr><td>'+esc(x.l.name)+'</td><td class="n">'+Q(x.l.qty)+' '+u+'</td><td class="n">'+Q(x.l.onHand)+'</td><td class="n" style="font-weight:700;color:'+(buy?'#A63A2E':'#2F6B3A')+'">'+(buy?Q(x.c.need)+' '+u:'covered')+'</td>'+
+  '<td class="n">'+(buy?(x.c.ready?x.c.pcs+' pcs'+(x.c.boxes!=null?' · '+x.c.boxes+' box':''):'<small style="color:#A63A2E">set kg/L</small>'):'—')+'</td><td class="n">'+(buy?PHP(x.c.cost):'—')+'</td><td style="font-size:12.5px">'+[...x.l.dates].sort().map(SD).join(', ')+'</td></tr>'}).join('')});
+ document.getElementById('v3').innerHTML='<div class="card"><b>'+rows.length+' ingredients</b> · est. to buy '+PHP(total)+'<div class="wrap" style="margin-top:10px"><table><thead><tr><th>Ingredient</th><th class="n">Total needed</th><th class="n">On hand now</th><th class="n">To buy</th><th class="n">Pieces / boxes</th><th class="n">Est. cost</th><th>Needed on</th></tr></thead><tbody>'+h+'</tbody></table></div></div>'+
+ '<div class="noprint"><button onclick="step2()">← Back</button> <button onclick="print()">🖨 Print</button> <button class="p" onclick="xl()">⬇ Export Excel</button></div>';window.__rows=rows.filter(x=>x.c.need>0)}
+function xl(){const d=[['Category','Ingredient','Qty needed','UOM','Pieces','Boxes','Est. cost']].concat(window.__rows.map(x=>[cat(x.l.name),x.l.name,+x.c.need.toFixed(2),x.l.uom,x.c.pcs,x.c.boxes??'',+x.c.cost.toFixed(2)]));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(d),'Purchase list');XLSX.writeFile(wb,'purchase-list-'+new Date().toISOString().slice(0,10)+'.xlsx')}
+</script></body></html>
