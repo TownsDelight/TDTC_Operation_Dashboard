@@ -5832,21 +5832,21 @@ function initApp(){
     return lines.some(l => l.onHand < l.required);
   }
 
-  function renderProductionLine(p){
+  function renderProductionLine(p, hideStub){
     const isReleased = !!(p.released && p.stockCommitted);
     const holdShort = (!p.validated && !p.stockCommitted) ? planHasShortage(p) : false;
     const timing = (p.startTime ? formatTimeDisplay(p.startTime) : '—') +
       (p.endTime ? ' – ' + formatTimeDisplay(p.endTime) : '');
     let actionsHtml = `<button type="button" data-action="view-prod">View</button>`;
     if(p.validated){
-      actionsHtml += `<button type="button" data-action="stub-prod">Print stub</button>` +
+      actionsHtml += (hideStub ? '' : `<button type="button" data-action="stub-prod">Print stub</button>`) +
         (canValidate() ? `<button type="button" data-action="reopen-prod">Reopen</button>` : '') +
         (canDelete() ? `<button type="button" class="del" data-action="delete-prod">Delete</button>` : '');
     } else {
       if(!isReleased && !holdShort){
         actionsHtml += (canValidate() ? `<button type="button" class="validate" data-action="release-prod">Release</button>` : '');
       }
-      actionsHtml += `<button type="button" data-action="stub-prod">Print stub</button>`;
+      actionsHtml += hideStub ? '' : `<button type="button" data-action="stub-prod">Print stub</button>`;
       actionsHtml += ((canValidate() && isReleased) ? `<button type="button" class="validate" data-action="validate-prod">Validate</button>` : '') +
         (canEdit() ? `<button type="button" data-action="edit-prod">Edit</button>` : '') +
         (canDelete() ? `<button type="button" class="del" data-action="delete-prod">Delete</button>` : '');
@@ -5876,7 +5876,7 @@ function initApp(){
           ? '<span class="status-tag nogo">NO-GO — no ingredients</span>'
           : '<span class="status-tag nogo">NO-GO — for releasing</span>'));
     return `
-      <div class="kanban-card">
+      <div class="kanban-card" data-ids="${items.map(x=>x.id).join(',')}">
         <span class="batch-tag">Batch #${escapeHtml(p.batchNumber || '—')}</span>
         ${statusTag}
         <span class="station-tag">${escapeHtml(p.category || 'Uncategorized')}</span>
@@ -5884,7 +5884,8 @@ function initApp(){
           ${items.length} recipe${items.length===1?'':'s'} · commis: ${escapeHtml(p.commi || '—')} · batch date ${formatDateDisplay(p.batchDate)}
           <div class="plan-progress">${escapeHtml(progressText(p))}</div>
         </div>
-        ${items.map(renderProductionLine).join('<hr style="border:0;border-top:1px dashed var(--line);margin:10px 0;">')}
+        ${items.map(x => renderProductionLine(x, items.length > 1)).join('<hr style="border:0;border-top:1px dashed var(--line);margin:10px 0;">')}
+        ${items.length > 1 ? `<div class="kanban-actions" style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);"><button type="button" data-action="stub-group">Print stub (all ${items.length} recipes)</button></div>` : ''}
       </div>`;
   }
   function renderCards(list){
@@ -6035,6 +6036,14 @@ function initApp(){
         const id = e.target.closest('.kanban-line').dataset.id;
         const plan = plans.find(p => p.id === id);
         if(plan) printBatchStub(plan);
+      });
+    });
+
+    productionBoardEl.querySelectorAll('[data-action="stub-group"]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const ids = (e.target.closest('.kanban-card').dataset.ids || '').split(',');
+        const group = ids.map(id => plans.find(p => p.id === id)).filter(Boolean);
+        if(group.length) printBatchStub(group);
       });
     });
 
@@ -6292,13 +6301,47 @@ function initApp(){
   }
 
   // ---------- Batch stub print ----------
-  function printBatchStub(plan){
-    const lines = planIngredientLines(plan);
-    const body = `
-      <h1>Production Batch Stub</h1>
-      <p class="print-sub">Kitchen Operation Dashboard · ${escapeHtml(plan.category || '')}</p>
+  // Accepts one plan or an array of plans (recipes of the same batch that share
+  // a status) and prints them together on a single stub.
+  function printBatchStub(input){
+    const group = Array.isArray(input) ? input : [input];
+    const plan = group[0];
+    const multi = group.length > 1;
+    const fmt = n => n.toLocaleString('en-PH',{maximumFractionDigits:2});
+    const timeOf = p => (p.startTime ? formatTimeDisplay(p.startTime) : '—') + (p.endTime ? ' – ' + formatTimeDisplay(p.endTime) : '');
+    const linesOf = p => planIngredientLines(p);
 
-      <table>
+    const recipeBlock = p => {
+      const lines = linesOf(p);
+      return `
+      <p class="section-label" style="margin-top:${multi ? 14 : 20}px;">${multi ? escapeHtml(p.recipeName) + ' · ' : ''}INGREDIENTS RELEASED</p>
+      ${multi ? `<div class="stub-recipe-meta" style="font-size:11.5px;color:#4B4E46;margin:0 0 2px;">${p.pax} pax · ${p.batches} batch${p.batches===1?'':'es'} · ${timeOf(p)}<br>${(p.allocations||[]).map(a => escapeHtml(allocText(a)) + ' — <b>' + a.pax + ' pax</b>').join('<br>')}</div>` : ''}
+      <table class="stub-ing">
+        <thead><tr><th>Ingredient</th><th class="num">Qty</th><th>Checked</th></tr></thead>
+        <tbody>
+          ${lines.map(l=>`<tr>
+            <td>${escapeHtml(l.name)}</td>
+            <td class="num">${fmt(l.required)} ${escapeHtml(l.uom)}</td>
+            <td>☐</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    };
+
+    // One shared raw-meat table for the whole stub (merged by name + unit).
+    const meatMap = new Map();
+    group.forEach(p => linesOf(p).filter(l => l.rawMeat).forEach(l => {
+      const k = (l.name || '') + '|' + (l.uom || '');
+      if(!meatMap.has(k)) meatMap.set(k, l);
+    }));
+    const meatRows = meatMap.size ? [...meatMap.values()] : [{name:''},{name:''}];
+
+    const header = multi ? `
+        <tr><th>Batch number</th><td><b style="font-size:17px;">#${escapeHtml(plan.batchNumber || '—')}</b></td></tr>
+        <tr><th>Date of production</th><td><b style="font-size:17px;">${formatDateDisplay(plan.batchDate)}</b></td></tr>
+        <tr><th>Commis in charge</th><td><b>${escapeHtml(plan.commi || '—')}</b></td></tr>
+        <tr><th>Recipes (${group.length})</th><td>${group.map(p => '<b>' + escapeHtml(p.recipeName) + '</b> — ' + p.pax + ' pax · ' + p.batches + ' batch' + (p.batches===1?'':'es')).join('<br>')}</td></tr>`
+    : `
         <tr><th>Batch number</th><td><b style="font-size:17px;">#${escapeHtml(plan.batchNumber || '—')}</b></td></tr>
         <tr><th>Date of production</th><td><b style="font-size:17px;">${formatDateDisplay(plan.batchDate)}</b></td></tr>
         <tr><th>Commis in charge</th><td><b>${escapeHtml(plan.commi || '—')}</b></td></tr>
@@ -6306,27 +6349,38 @@ function initApp(){
         <tr><th>Pax / batches</th><td>${plan.pax} pax · ${plan.batches} batch${plan.batches===1?'':'es'}</td></tr>
         <tr><th>Events / places</th><td>${(plan.allocations||[]).map(a => escapeHtml(allocText(a)) + ' — <b>' + a.pax + ' pax</b>').join('<br>')}</td></tr>
         <tr><th>Recipes in this batch</th><td>${planSiblings(plan).map(x => escapeHtml(x.recipeName) + (x.id === plan.id ? ' <b>(this stub)</b>' : '')).join(', ')}</td></tr>
-        <tr><th>Timing</th><td>${plan.startTime ? formatTimeDisplay(plan.startTime) : '—'}${plan.endTime ? ' – ' + formatTimeDisplay(plan.endTime) : ''}</td></tr>
+        <tr><th>Timing</th><td>${timeOf(plan)}</td></tr>`;
+
+    const body = `
+      <style>
+        @page{size:auto;margin:8mm 10mm;}
+        thead{display:table-header-group;}
+        tr{break-inside:avoid;page-break-inside:avoid;}
+        .section-label,.stub-recipe-meta{break-after:avoid;page-break-after:avoid;}
+        .stub-sign,.stub-meat{break-inside:avoid;page-break-inside:avoid;}
+        @media print{
+          body{padding:0 !important;}
+          .stamp{position:static !important;margin-top:10px;}
+          .section-label{margin:10px 0 4px !important;}
+          th,td{padding:4px 8px !important;font-size:11.5px !important;}
+          h1{font-size:18px !important;}
+          .print-sub{margin-bottom:8px !important;}
+          .stub-meat td,.stub-sign td{height:auto !important;padding-top:10px !important;padding-bottom:10px !important;}
+        }
+      </style>
+      <h1>Production Batch Stub</h1>
+      <p class="print-sub">Kitchen Operation Dashboard · ${escapeHtml(plan.category || '')}</p>
+
+      <table>${header}
       </table>
 
-      <p class="section-label">INGREDIENTS RELEASED</p>
-      <table>
-        <thead><tr><th>Ingredient</th><th class="num">Qty</th><th>Checked</th></tr></thead>
-        <tbody>
-          ${lines.map(l=>`<tr>
-            <td>${escapeHtml(l.name)}</td>
-            <td class="num">${l.required.toLocaleString('en-PH',{maximumFractionDigits:2})} ${escapeHtml(l.uom)}</td>
-            <td>☐</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
+      ${group.map(recipeBlock).join('')}
 
       <p class="section-label">TO BE FILLED UP BY KITCHEN STAFF AFTER PRODUCTION</p>
-      <table>
+      <table class="stub-meat">
         <thead><tr><th>Raw meat</th><th class="num">Excess (kg)</th><th>Staff meal</th><th>Disposal</th></tr></thead>
         <tbody>
-          ${(lines.filter(l=>l.rawMeat).length ? lines.filter(l=>l.rawMeat) : [{name:'', uom:''},{name:'', uom:''}])
-            .map(l=>`<tr>
+          ${meatRows.map(l=>`<tr>
               <td style="height:30px;">${escapeHtml(l.name || '')}</td>
               <td class="num"></td><td>☐</td><td>☐</td>
             </tr>`).join('')}
@@ -6334,7 +6388,7 @@ function initApp(){
         </tbody>
       </table>
       <p class="section-label">RELEASED BY / RECEIVED BY</p>
-      <table><tr><td style="height:46px;">Released by: ______________________</td>
+      <table class="stub-sign"><tr><td style="height:46px;">Released by: ______________________</td>
       <td style="height:46px;">Received by: ______________________</td></tr></table>`;
     printSection('Batch Stub #' + (plan.batchNumber || ''), body);
   }
