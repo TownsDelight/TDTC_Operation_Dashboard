@@ -7847,7 +7847,8 @@ function initApp(){
       const recipe = (f.recipeId && recipes.find(r => r.id === f.recipeId)) || recipes.find(r => r.name === f.description);
       if(!recipe){ issues.push((f.description || 'a food item') + ' — saved recipe not found'); return; }
       if(!(recipe.yieldVal > 0)){ issues.push(recipe.name + ' — recipe has no yield'); return; }
-      const batches = Math.ceil(pkg.pax / recipe.yieldVal);
+      // Food tasting: scale the recipe by pax (pax / yield, no rounding up). Packages: whole batches.
+      const batches = pkg.byPax ? (pkg.pax / recipe.yieldVal) : Math.ceil(pkg.pax / recipe.yieldVal);
       getMergedIngredients(recipe, batches).forEach(ing => {
         const k = ingredientKey(ing.name, ing.uom);
         if(!lines[k]) lines[k] = { key:k, name:ing.name, uom:ing.uom, qty:0 };
@@ -8434,7 +8435,7 @@ function initApp(){
   });
 
   // ---------- grocery (same structure as the package grocery list) ----------
-  const ftAsPkg = f => ({ id:f.id, name:(f.packageName || 'Food tasting') + ' · ' + (f.sales || ''), eventDate:f.date, pax:f.pax, foodItems:(f.foods || []).filter(x => x.description), extraFoodItems:[], soNumber:'' });
+  const ftAsPkg = f => ({ id:f.id, name:(f.packageName || 'Food tasting') + ' · ' + (f.sales || ''), eventDate:f.date, pax:f.pax, foodItems:(f.foods || []).filter(x => x.description), extraFoodItems:[], soNumber:'', byPax:true });
   function renderFtGrocery(){
     const el = document.getElementById('groceryFtList'); if(!el) return;
     const list = foodTastings.filter(f => f.date && !ftNoFood(f)).map(ftAsPkg);
