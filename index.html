@@ -2729,7 +2729,7 @@
       <div class="kpi"><div class="k-label">DISTINCT INGREDIENTS</div><div class="k-value" id="glKpiIng">0</div></div>
       <div class="kpi"><div class="k-label">AWAITING A DATE</div><div class="k-value" id="glKpiUndated">0</div></div>
     </div>
-    <p class="gl-intro">An advance <b>overview of the expected grocery</b>, computed from the <b>Saved Packages that have an event date</b> (each food item's recipe &times; the package pax, rounded up to whole batches &mdash; the same way Production Planning works). <b>Ingredient Procurement</b> stays based on batch planning; this list looks ahead, per month, per week or per day.</p>
+    <p class="gl-intro">An advance <b>overview of the expected grocery</b>, computed from the <b>Saved Packages that have an event date</b> (each food item's recipe &times; the package pax, rounded up to whole batches &mdash; the same way Production Planning works). <b>Ingredient Procurement</b> stays based on batch planning; this list looks ahead, per month, per week, per day or per event.</p>
     <div id="groceryBanner"></div>
     <div id="groceryList" data-fscope="gl"></div>
     <p class="section-label" style="color:#9C9F92;margin-top:30px;">FOOD TASTING — COMPUTED GROCERY LIST</p>
@@ -2797,6 +2797,7 @@
           <div><label for="ftSales">Name of Sales</label><input type="text" id="ftSales" placeholder="e.g. Jelay"></div>
           <div><label for="ftPax">Pax</label><input type="number" id="ftPax" min="1" step="1" placeholder="e.g. 4"></div>
         </div>
+        <div style="max-width:640px;margin-bottom:14px;"><label for="ftDesc">Description <span style="font-weight:400;color:var(--steel);">(client name/s)</span></label><input type="text" id="ftDesc" maxlength="200" placeholder="e.g. Mr. &amp; Mrs. Santos"></div>
         <div class="field-row" style="grid-template-columns:1fr 1fr;max-width:640px;">
           <div><label for="ftPkg">Package</label><div class="ft-pkgs" id="ftPkg"><label><input type="checkbox" class="ftPkgCb" value="PRESTIGE"> PRESTIGE</label><label><input type="checkbox" class="ftPkgCb" value="DC"> DC</label><label><input type="checkbox" class="ftPkgCb" value="FILIPINIANA"> FILIPINIANA</label><label><input type="checkbox" class="ftPkgCb" value="DI AO"> DI AO</label><label><input type="checkbox" class="ftPkgCb" value="CORPORATE"> CORPORATE</label></div></div>
           <div><label for="ftTime">Time</label><input type="time" id="ftTime"></div>
@@ -7627,8 +7628,10 @@ function initApp(){
       '<div class="pkgf-body">' + (open ? bodyFn() : '') + '</div></div>';
   }
   function modeBarHtml(scope, monthKey, mode){
+    const modes = [['all','Whole month'],['week','Per week'],['day','Per day']];
+    if(scope === 'gl' || scope === 'fg') modes.push(['event','Per event']);   // grocery lists only
     return '<div class="pkgf-modes"><span>View by</span>' +
-      [['all','Whole month'],['week','Per week'],['day','Per day']].map(m =>
+      modes.map(m =>
         '<button type="button" class="' + (m[0] === mode ? 'on' : '') + '" data-fmode="' + m[0] + '" data-fscope="' + scope + '" data-mkey="' + monthKey + '">' + m[1] + '</button>').join('') +
       '</div>';
   }
@@ -7914,6 +7917,12 @@ function initApp(){
     items.forEach(it => groups[grocCategory(it.name)].push(it));
     return GROC_CATS.map(c => ({ id:c.id, label:c.label, items:groups[c.id], cost: groups[c.id].reduce((s, i) => s + i.cost, 0) }));
   }
+  // Grocery folders: whole month / per week / per day / per event (each event is its own folder)
+  function grocGroupsInMonth(items, mode){
+    if(mode !== 'event') return groupInMonth(items, mode);
+    return items.slice().sort((a, b) => pkgDate(b).localeCompare(pkgDate(a)) || String(a.name || '').localeCompare(String(b.name || '')))
+      .map(p => ({ key: String(p.id), label: shortDate(pkgDate(p)) + ' · ' + (p.name || 'Event') + (p.pax ? ' · ' + p.pax + ' pax' : ''), items: [p] }));
+  }
   function grocCatRow(c, bid, cols){
     return '<tr class=\"gl-cat\" id=\"glcat-' + escapeHtml(bid) + '-' + c.id + '\"><td colspan=\"' + cols + '\">' + escapeHtml(c.label) + ' <span class=\"gl-cat-sub\">' + c.items.length + ' item' + (c.items.length === 1 ? '' : 's') + ' · est. to buy ' + PHP(c.cost) + '</span></td></tr>';
   }
@@ -7989,7 +7998,7 @@ function initApp(){
         if(mode === 'all'){
           body += grocBlockHtml('gl|m|' + mo.key, 'Whole month — ' + mo.label, mo.items);
         } else {
-          body += groupInMonth(mo.items, mode).map(grp => {
+          body += grocGroupsInMonth(mo.items, mode).map(grp => {
             const id = 'gl|' + mode[0] + '|' + mo.key + '|' + grp.key;
             return folderHtml(id, '📂', grp.label, grp.items.length, () => grocBlockHtml(id, grp.label, grp.items), 'sub', false);
           }).join('');
@@ -8321,7 +8330,7 @@ function initApp(){
   }
   function ftReset(){
     ftEditId = null; ftDate = ''; ftEnforce = true;
-    ['ftPax','ftTime'].forEach(id => document.getElementById(id).value = ''); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = false);
+    ['ftPax','ftTime','ftDesc'].forEach(id => document.getElementById(id).value = ''); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = false);
     document.getElementById('ftSales').value = currentUser || '';
     ['ftStBooked','ftStWaiting','ftFollow'].forEach(id => document.getElementById(id).checked = false);
     document.getElementById('ftEnforce').checked = true;
@@ -8332,7 +8341,7 @@ function initApp(){
   function ftEdit(id){
     const f = foodTastings.find(x => x.id === id); if(!f || f.evaluation) return;
     goTab('foodtasting', 'input'); ftInitForm(); ftReset(); ftEditId = id; ftDate = f.date; ftCur = isoToDate(f.date);
-    document.getElementById('ftSales').value = f.sales || ''; document.getElementById('ftPax').value = f.pax || ''; { const pt = f.packageTypes || (f.packageName || '').split(/\s*[,+]\s*/); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = pt.includes(c.value)); } document.getElementById('ftTime').value = f.time || '';
+    document.getElementById('ftSales').value = f.sales || ''; document.getElementById('ftDesc').value = f.description || ''; document.getElementById('ftPax').value = f.pax || ''; { const pt = f.packageTypes || (f.packageName || '').split(/\s*[,+]\s*/); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = pt.includes(c.value)); } document.getElementById('ftTime').value = f.time || '';
     document.getElementById('ftStBooked').checked = f.status === 'booked'; document.getElementById('ftStWaiting').checked = f.status === 'waiting'; document.getElementById('ftFollow').checked = !!f.foodToFollow;
     ftBuildFoods(); (f.foods || []).forEach(x => ftAddRow(document.querySelector('#ftFoods .ft-cat[data-cat="' + x.category + '"]') || document.querySelector('#ftFoods .ft-cat:last-child'), x));
     document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => { if(!ce.querySelector('.ft-row')) ftAddRow(ce); });
@@ -8348,7 +8357,7 @@ function initApp(){
     if(!foods.length && !follow){ ftFollowNote(); return bad('No food list: add dishes, or tick TO FOLLOW.'); }
     const btn = document.getElementById('ftSaveBtn'); btn.disabled = true; btn.textContent = 'Saving…';
     try{
-      const rec = { sales, pax, packageName:pkg, packageTypes:pkgTypes, time, date:ftDate, eventDate:ftDate, status: booked ? 'booked' : 'waiting', foods, foodToFollow: !foods.length };
+      const rec = { sales, description: document.getElementById('ftDesc').value.trim(), pax, packageName:pkg, packageTypes:pkgTypes, time, date:ftDate, eventDate:ftDate, status: booked ? 'booked' : 'waiting', foods, foodToFollow: !foods.length };
       let note = '', action = 'Added', saved;
       await ftMutate(list => {
         if(ftEditId){
@@ -8381,7 +8390,7 @@ function initApp(){
     const nf = ftNoFood(f), ev = f.evaluation, due = ftNeedsEval(f);
     return '<div class="recipe-item' + (nf && !ev ? ' ft-red' : '') + '" data-id="' + f.id + '"><div><span class="cat-tag date-tag">📅 ' + ftEsc(fmtIso(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + '</span> <span class="cat-tag">' + (ev ? (ev.outcome === 'booked' ? '✓ CLOSED · BOOKED ' + ftEsc(fmtIso(ev.eventDate)) : '✓ CLOSED · WAITING TO CONFIRM') : (f.status === 'booked' ? 'BOOKED' : 'WAITING')) + '</span> <span class="cat-tag">' + (f.pax || 0) + ' pax</span>' +
       (nf ? ' <span class="cat-tag ft-redtag">⚠ NO FOOD LIST — due ' + ftEsc(shortDate(ftDueIso(f))) + '</span>' : ' <span class="cat-tag">' + f.foods.length + ' dishes</span>') + (due ? ' <span class="cat-tag ft-redtag">🔔 needs evaluation</span>' : '') +
-      '<div class="rname">' + ftEsc(f.packageName || 'Food tasting') + '</div><div class="rmeta">Sales: ' + ftEsc(f.sales || '—') + (ev && ev.outcome === 'waiting-confirm' ? ' · Result: ' + ftEsc(ev.note) : '') + '</div></div>' +
+      '<div class="rname">' + ftEsc(f.packageName || 'Food tasting') + '</div><div class="rmeta">' + (f.description ? 'Client: <b>' + ftEsc(f.description) + '</b> · ' : '') + 'Sales: ' + ftEsc(f.sales || '—') + (ev && ev.outcome === 'waiting-confirm' ? ' · Result: ' + ftEsc(ev.note) : '') + '</div></div>' +
       '<div class="ft-acts"><button type="button" class="print-btn" data-ftact="view">View</button>' + (!ev && canEdit() ? '<button type="button" class="print-btn" data-ftact="edit">Edit</button>' : '') + (due && canEdit() ? '<button type="button" class="save-btn" style="width:auto;margin:0;padding:8px 14px;" data-ftact="eval">Evaluate</button>' : '') + (canDeletePackage() ? '<button type="button" class="print-btn" data-ftact="del">Delete</button>' : '') + '</div></div>';
   }
   function renderFtSaved(){
@@ -8435,7 +8444,7 @@ function initApp(){
   });
 
   // ---------- grocery (same structure as the package grocery list) ----------
-  const ftAsPkg = f => ({ id:f.id, name:(f.packageName || 'Food tasting') + ' · ' + (f.sales || ''), eventDate:f.date, pax:f.pax, foodItems:(f.foods || []).filter(x => x.description), extraFoodItems:[], soNumber:'', byPax:true });
+  const ftAsPkg = f => ({ id:f.id, name:(f.packageName || 'Food tasting') + ' · ' + (f.description || f.sales || ''), eventDate:f.date, pax:f.pax, foodItems:(f.foods || []).filter(x => x.description), extraFoodItems:[], soNumber:'', byPax:true });
   function renderFtGrocery(){
     const el = document.getElementById('groceryFtList'); if(!el) return;
     const list = foodTastings.filter(f => f.date && !ftNoFood(f)).map(ftAsPkg);
@@ -8445,7 +8454,7 @@ function initApp(){
       html += folderHtml('fg|m|' + mo.key, '📁', mo.label, mo.items.length, () => {
         let body = modeBarHtml('fg', mo.key, mode);
         if(mode === 'all') body += grocBlockHtml('fg|m|' + mo.key, 'Food tasting — ' + mo.label, mo.items);
-        else body += groupInMonth(mo.items, mode).map(g => { const id = 'fg|' + mode[0] + '|' + mo.key + '|' + g.key; return folderHtml(id, '📂', g.label, g.items.length, () => grocBlockHtml(id, 'Food tasting — ' + g.label, g.items), 'sub', false); }).join('');
+        else body += grocGroupsInMonth(mo.items, mode).map(g => { const id = 'fg|' + mode[0] + '|' + mo.key + '|' + g.key; return folderHtml(id, '📂', g.label, g.items.length, () => grocBlockHtml(id, 'Food tasting — ' + g.label, g.items), 'sub', false); }).join('');
         return body;
       }, '', false);
     });
