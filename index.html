@@ -8459,15 +8459,32 @@ function initApp(){
     el.innerHTML = h;
   }
   const ftEvalOpen = new Set();
+  let ftReevalId = '';   // closed food tasting currently re-opened in the evaluation interface
+  function ftEvalCardHtml(f, re){
+    const ev = f.evaluation || {};
+    const chk = v => re && ev.outcome === v ? ' checked' : '';
+    const wcShow = re && ev.outcome === 'waiting-confirm', bkShow = re && ev.outcome === 'booked';
+    const can = re ? canEditClosedFt() : canEdit();
+    return '<div class="card ft-evalcard" data-id="' + f.id + '"' + (re ? ' data-reeval="1" style="border:2px solid var(--rust,#B4492A);"' : '') + '><details class="ft-evdd" data-id="' + f.id + '"' + (re || ftEvalOpen.has(f.id) ? ' open' : '') + '><summary>' + (re ? '<span class="cat-tag ft-redtag">✏️ EDITING CLOSED EVALUATION</span> ' : '') + '<b>' + ftEsc(f.packageName || 'Food tasting') + '</b>' + (f.description ? ' · ' + ftEsc(f.description) : '') + ' · ' + (f.pax || 0) + ' pax <span class="ft-evdd-sub">📅 ' + ftEsc(shortDate(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + ' · Sales: ' + ftEsc(f.sales || '—') + '</span></summary>' + ftDetailHtml(f) +
+      (can ? '<div class="ft-evform"><label><input type="radio" name="evo-' + f.id + '" value="waiting-confirm"' + chk('waiting-confirm') + '> WAITING TO CONFIRM</label><label><input type="radio" name="evo-' + f.id + '" value="booked"' + chk('booked') + '> BOOKED</label>' +
+        '<div class="ft-ev-wc" style="display:' + (wcShow ? 'block' : 'none') + ';"><label>What happened — result of this food tasting</label><textarea rows="3" class="ft-ev-note" placeholder="Client feedback, what they are deciding on…">' + (wcShow ? ftEsc(ev.note || '') : '') + '</textarea></div>' +
+        '<div class="ft-ev-bk" style="display:' + (bkShow ? 'block' : 'none') + ';"><label>Date of the event</label><input type="date" class="ft-ev-date" value="' + (bkShow ? ftEsc(ev.eventDate || '') : '') + '"></div><div class="form-msg ft-ev-msg"></div>' +
+        '<button type="button" class="save-btn" data-ftsub="' + f.id + '" style="width:auto;padding:10px 18px;">' + (re ? 'Update evaluation' : 'Confirm &amp; close') + '</button>' +
+        (re ? ' <button type="button" class="print-btn" data-ftcancel="1" style="margin-left:8px;">Cancel</button><small style="display:block;color:var(--steel);margin-top:6px;">Changes the result of this closed food tasting. It stays closed.</small>' : '<small style="display:block;color:var(--steel);margin-top:6px;">Once submitted it is closed. You can reopen the result later with Edit in Saved Food Tasting.</small>') + '</div>'
+        : '<p class="pkgf-note">Ask Sales, a Manager or the Admin to evaluate it.</p>') + '</details></div>';
+  }
   function renderFtEval(){
     const el = document.getElementById('ftEvalList'); if(!el) return;
     const L = foodTastings.filter(ftNeedsEval).sort(newestFirst);
-    if(!L.length){ el.innerHTML = '<div class="empty-state">Nothing to evaluate. Food tastings appear here once their date and time have passed; after you submit, the result is attached to the saved food tasting and it is closed.</div>'; return; }
-    el.innerHTML = '<p class="section-label" style="color:#9C9F92;">FOR EVALUATION — copies of finished food tastings that still need a result</p>' + L.map(f => '<div class="card ft-evalcard" data-id="' + f.id + '"><details class="ft-evdd" data-id="' + f.id + '"' + (ftEvalOpen.has(f.id) ? ' open' : '') + '><summary><b>' + ftEsc(f.packageName || 'Food tasting') + '</b>' + (f.description ? ' · ' + ftEsc(f.description) : '') + ' · ' + (f.pax || 0) + ' pax <span class="ft-evdd-sub">📅 ' + ftEsc(shortDate(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + ' · Sales: ' + ftEsc(f.sales || '—') + '</span></summary>' + ftDetailHtml(f) +
-      (canEdit() ? '<div class="ft-evform"><label><input type="radio" name="evo-' + f.id + '" value="waiting-confirm"> WAITING TO CONFIRM</label><label><input type="radio" name="evo-' + f.id + '" value="booked"> BOOKED</label>' +
-        '<div class="ft-ev-wc" style="display:none;"><label>What happened — result of this food tasting</label><textarea rows="3" class="ft-ev-note" placeholder="Client feedback, what they are deciding on…"></textarea></div>' +
-        '<div class="ft-ev-bk" style="display:none;"><label>Date of the event</label><input type="date" class="ft-ev-date"></div><div class="form-msg ft-ev-msg"></div>' +
-        '<button type="button" class="save-btn" data-ftsub="' + f.id + '" style="width:auto;padding:10px 18px;">Confirm &amp; close</button><small style="display:block;color:var(--steel);margin-top:6px;">Once submitted it is closed and can no longer be edited.</small></div>' : '<p class="pkgf-note">Ask Sales, a Manager or the Admin to evaluate it.</p>') + '</details></div>').join('');
+    const R = ftReevalId ? foodTastings.find(x => x.id === ftReevalId && x.evaluation) : null;
+    if(!R) ftReevalId = '';
+    if(!L.length && !R){ el.innerHTML = '<div class="empty-state">Nothing to evaluate. Food tastings appear here once their date and time have passed; after you submit, the result is attached to the saved food tasting and it is closed.</div>'; return; }
+    el.innerHTML = (R ? ftEvalCardHtml(R, true) : '') + (L.length ? '<p class="section-label" style="color:#9C9F92;">FOR EVALUATION — copies of finished food tastings that still need a result</p>' + L.map(f => ftEvalCardHtml(f, false)).join('') : '');
+  }
+  // Edit on a CLOSED food tasting reopens its evaluation (open / for-evaluation ones still use the normal form)
+  function ftEditEval(id){
+    const f = foodTastings.find(x => x.id === id); if(!f || !f.evaluation || !canEditClosedFt()) return;
+    ftReevalId = id; goTab('foodtasting', 'eval'); renderFtEval(); window.scrollTo(0, 0);
   }
   function renderFtAll(){ ftRenderBanners(); renderFtSaved(); renderFtEval(); try{ if(window.__sideNavBuilt) renderSideNav(); }catch(e){} }
   function renderFoodTasting(){
@@ -8478,7 +8495,7 @@ function initApp(){
   }
   document.getElementById('ftSavedList').addEventListener('click', async e => {
     const b = e.target.closest('[data-ftact]'); if(!b) return; const id = b.closest('[data-id]').dataset.id, a = b.dataset.ftact;
-    if(a === 'view') ftShowDetail(id); else if(a === 'edit') ftEdit(id); else if(a === 'eval') goTab('foodtasting', 'eval');
+    if(a === 'view') ftShowDetail(id); else if(a === 'edit'){ const ff = foodTastings.find(x => x.id === id); if(ff && ff.evaluation) ftEditEval(id); else ftEdit(id); } else if(a === 'eval') goTab('foodtasting', 'eval');
     else if(a === 'del'){ const f = foodTastings.find(x => x.id === id); if(f && confirm('Delete this food tasting (' + (f.packageName || '') + ', ' + f.date + ')? It will be removed from the calendar.')){ await ftMutate(l => l.filter(x => x.id !== id)); await ftLog('Deleted', f, f.evaluation ? 'was closed' : ''); renderCalendar(); renderFtAll(); } }
   });
   wireFolderClicks(document.getElementById('ftSavedList'), renderFtSaved);
@@ -8489,14 +8506,16 @@ function initApp(){
   ftEvalEl.addEventListener('toggle', e => { const d = e.target; if(d && d.classList && d.classList.contains('ft-evdd')){ if(d.open) ftEvalOpen.add(d.dataset.id); else ftEvalOpen.delete(d.dataset.id); } }, true);
   ftEvalEl.addEventListener('change', e => { const c = e.target.closest('.ft-evalcard'); if(!c || e.target.type !== 'radio') return; c.querySelector('.ft-ev-wc').style.display = e.target.value === 'waiting-confirm' ? 'block' : 'none'; c.querySelector('.ft-ev-bk').style.display = e.target.value === 'booked' ? 'block' : 'none'; });
   ftEvalEl.addEventListener('click', async e => {
-    const b = e.target.closest('[data-ftsub]'); if(!b || !canEdit()) return; const c = b.closest('.ft-evalcard'), id = b.dataset.ftsub, msg = c.querySelector('.ft-ev-msg');
+    if(e.target.closest('[data-ftcancel]')){ ftReevalId = ''; renderFtEval(); goTab('foodtasting', 'saved'); return; }
+    const b = e.target.closest('[data-ftsub]'); if(!b) return; const c = b.closest('.ft-evalcard'), id = b.dataset.ftsub, msg = c.querySelector('.ft-ev-msg'), re = !!c.dataset.reeval; if(re ? !canEditClosedFt() : !canEdit()) return;
     const o = c.querySelector('input[type=radio]:checked'); const bad = t => { msg.className = 'form-msg ft-ev-msg err'; msg.textContent = t; };
     if(!o) return bad('Tick WAITING TO CONFIRM or BOOKED.');
     const note = c.querySelector('.ft-ev-note').value.trim(), ed = c.querySelector('.ft-ev-date').value;
     if(o.value === 'waiting-confirm' && !note) return bad('Describe what happened in this food tasting.'); if(o.value === 'booked' && !ed) return bad('Enter the date of the event.');
     b.disabled = true; b.textContent = 'Saving…'; let f;
-    await ftMutate(list => { f = list.find(x => x.id === id); if(f && !f.evaluation){ f.evaluation = { outcome:o.value, note:o.value === 'waiting-confirm' ? note : '', eventDate:o.value === 'booked' ? ed : '', by:currentUser || '', at:new Date().toISOString() }; f.closed = true; } return list; });
-    if(f) await ftLog('Evaluated', f, o.value === 'booked' ? 'BOOKED — event date ' + ed : 'WAITING TO CONFIRM — ' + note);
+    let prevEv = null; await ftMutate(list => { f = list.find(x => x.id === id); if(f && (re ? !!f.evaluation : !f.evaluation)){ if(re){ prevEv = f.evaluation; f.evalHistory = (f.evalHistory || []).concat([prevEv]); } f.evaluation = { outcome:o.value, note:o.value === 'waiting-confirm' ? note : '', eventDate:o.value === 'booked' ? ed : '', by:currentUser || '', at:new Date().toISOString() }; f.closed = true; } return list; });
+    if(f) await ftLog(re ? 'Re-evaluated' : 'Evaluated', f, (o.value === 'booked' ? 'BOOKED — event date ' + ed : 'WAITING TO CONFIRM — ' + note) + (re && prevEv ? ' (was ' + (prevEv.outcome === 'booked' ? 'BOOKED ' + prevEv.eventDate : 'WAITING TO CONFIRM') + ')' : ''));
+    if(re){ ftReevalId = ''; goTab('foodtasting', 'saved'); }
     renderCalendar(); renderFtAll();
   });
 
