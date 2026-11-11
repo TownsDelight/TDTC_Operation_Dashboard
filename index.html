@@ -1916,7 +1916,17 @@
   .ft-redtag{background:#B3261E !important;color:#fff !important;}
   .pkgf.ft-redf .pkgf-head{background:#F6D5D0;color:#8A2E1A;}
   .ft-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .kpi-click{cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .1s;}
+  .kpi-click:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);border-color:var(--rust,#B4492A);}
+  .kpi-click.kpi-on{border-color:var(--rust,#B4492A);box-shadow:0 0 0 2px rgba(180,73,42,.25);}
+  .ft-filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;}
   .ft-evalcard{margin-bottom:16px;}
+  .ft-evdd > summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px;padding:2px 0;}
+  .ft-evdd > summary::-webkit-details-marker{display:none;}
+  .ft-evdd > summary::before{content:'▶';font-size:11px;color:var(--steel);transition:transform .15s;}
+  .ft-evdd[open] > summary::before{transform:rotate(90deg);}
+  .ft-evdd[open] > summary{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .ft-evdd-sub{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);}
   .ft-evform{margin-top:12px;padding-top:12px;border-top:1px dashed #ccc;display:flex;flex-direction:column;gap:8px;}
   .ft-evform label{display:flex;gap:8px;align-items:center;font-weight:600;}
   .ft-evform input[type=radio]{width:auto;margin:0;}
@@ -8229,7 +8239,8 @@ function initApp(){
   }
   function ftRenderBanners(){
     const h = ftBannerHtml();
-    ['ftGlobalBanner','calFtWarn','ftBanners'].forEach(id => { const e = document.getElementById(id); if(!e) return; e.innerHTML = h; e.style.display = h ? 'block' : 'none'; e.querySelectorAll('[data-ftgo]').forEach(b => b.onclick = () => goTab('foodtasting', b.dataset.ftgo)); });
+    ['calFtWarn','ftBanners'].forEach(id => { const x = document.getElementById(id); if(x){ x.innerHTML = ''; x.style.display = 'none'; } });
+    ['ftGlobalBanner'].forEach(id => { const e = document.getElementById(id); if(!e) return; e.innerHTML = h; e.style.display = h ? 'block' : 'none'; e.querySelectorAll('[data-ftgo]').forEach(b => b.onclick = () => goTab('foodtasting', b.dataset.ftgo)); });
   }
   function ftShowDetail(id){
     const f = foodTastings.find(x => x.id === id); if(!f) return;
@@ -8350,13 +8361,13 @@ function initApp(){
     ftRenderPicker(); ftSum();
   }
   function ftEdit(id){
-    const f = foodTastings.find(x => x.id === id); if(!f || f.evaluation) return;
+    const f = foodTastings.find(x => x.id === id); if(!f || (f.evaluation && !canEditClosedFt())) return;
     goTab('foodtasting', 'input'); ftInitForm(); ftReset(); ftEditId = id; ftDate = f.date; ftCur = isoToDate(f.date);
     document.getElementById('ftSales').value = f.sales || ''; document.getElementById('ftDesc').value = f.description || ''; document.getElementById('ftPax').value = f.pax || ''; { const pt = (f.packageTypes || (f.packageName || '').split(/\s*[,+]\s*/)).flatMap(x => x === 'DI AO' ? ['DI','AO'] : [x]); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = pt.includes(c.value)); ftSetCustom(pt.filter(x => x && !FT_STD_PKGS.includes(x)).join(', ')); } document.getElementById('ftTime').value = f.time || '';
     document.getElementById('ftStBooked').checked = f.status === 'booked'; document.getElementById('ftStWaiting').checked = f.status === 'waiting'; document.getElementById('ftFollow').checked = !!f.foodToFollow;
     ftBuildFoods(); (f.foods || []).forEach(x => ftAddRow(document.querySelector('#ftFoods .ft-cat[data-cat="' + x.category + '"]') || document.querySelector('#ftFoods .ft-cat:last-child'), x));
     document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => { if(!ce.querySelector('.ft-row')) ftAddRow(ce); });
-    document.getElementById('ftFormTitle').textContent = 'FOOD TASTING — EDITING'; document.getElementById('ftSaveBtn').textContent = 'Update food tasting';
+    document.getElementById('ftFormTitle').textContent = f.evaluation ? 'FOOD TASTING — EDITING (CLOSED)' : 'FOOD TASTING — EDITING'; document.getElementById('ftSaveBtn').textContent = 'Update food tasting';
     ftRenderPicker(); ftSum(); window.scrollTo(0, 0);
   }
   async function ftSave(){
@@ -8372,13 +8383,13 @@ function initApp(){
       let note = '', action = 'Added', saved;
       await ftMutate(list => {
         if(ftEditId){
-          const f = list.find(x => x.id === ftEditId); if(!f || f.evaluation) return list; action = 'Edited';
+          const f = list.find(x => x.id === ftEditId); if(!f || (f.evaluation && !canEditClosedFt())) return list; action = f.evaluation ? 'Edited (closed)' : 'Edited';
           const ch = []; if(f.date !== rec.date) ch.push('date ' + f.date + ' → ' + rec.date); if(f.time !== rec.time) ch.push('time ' + f.time + ' → ' + rec.time); if(f.pax !== rec.pax) ch.push('pax ' + f.pax + ' → ' + rec.pax); if(f.status !== rec.status) ch.push('status ' + f.status + ' → ' + rec.status); if(ftNoFood(f) && foods.length) ch.push('food list added');
           note = ch.join('; '); Object.assign(f, rec, { updatedAt:new Date().toISOString(), updatedBy:currentUser || '' }); saved = f;
         } else { saved = Object.assign({ id:'ft' + Date.now() + Math.random().toString(16).slice(2,6), createdAt:new Date().toISOString(), createdBy:currentUser || '', evaluation:null }, rec); list.push(saved); }
         return list;
       });
-      if(!saved) return bad('This food tasting was closed by an evaluation and can no longer be edited.');
+      if(!saved) return bad('This food tasting is closed and you do not have the privilege to edit it.');
       if(!foods.length) note = (note ? note + '; ' : '') + 'NO FOOD LIST — to follow (due ' + dateToIso(new Date(isoToDate(rec.date).getTime() - 3 * 864e5)) + ')';
       await ftLog(action, saved, note);
       folderOpen.add('ft|m|' + rec.date.slice(0, 7)); if(!foods.length) folderOpen.add('ft|nofood');
@@ -8391,41 +8402,72 @@ function initApp(){
   function ftDashHtml(){
     const L = foodTastings, open = L.filter(f => !f.evaluation);
     const wc = L.filter(f => f.evaluation && f.evaluation.outcome === 'waiting-confirm').length, bk = L.filter(f => f.evaluation && f.evaluation.outcome === 'booked').length;
-    const card = (k, v, c) => '<div class="kpi"><div class="k-label">' + k + '</div><div class="k-value" ' + (c ? 'style="color:' + c + '"' : '') + '>' + v + '</div></div>';
+    const card = (k, v, c, fk) => '<div class="kpi kpi-click' + (ftFilter === fk ? ' kpi-on' : '') + '" data-ftf="' + fk + '" role="button" tabindex="0" title="Click to open this folder"><div class="k-label">' + k + '</div><div class="k-value" ' + (c ? 'style="color:' + c + '"' : '') + '>' + v + '</div></div>';
     const mon = {}; L.forEach(f => { const k = f.date.slice(0, 7); const m = mon[k] = mon[k] || { b:0, w:0, wc:0, cb:0, t:0 }; m.t++; if(f.evaluation) f.evaluation.outcome === 'booked' ? m.cb++ : m.wc++; else f.status === 'booked' ? m.b++ : m.w++; });
     const ks = Object.keys(mon).sort().reverse();
-    return '<div class="kpi-row kpi-row-4" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">' + card('BOOKED (FT)', open.filter(f => f.status === 'booked').length) + card('WAITING (FT)', open.filter(f => f.status === 'waiting').length) + card('WAITING TO CONFIRM', wc) + card('CONFIRMED BOOKING', bk) + card('NO FOOD LIST', ftAlerts().nf.length, '#A63A2E') + card('TOTAL FT', L.length) + '</div>' +
+    return '<div class="kpi-row kpi-row-4" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">' + card('BOOKED (FT)', open.filter(f => f.status === 'booked').length, '', 'booked') + card('WAITING (FT)', open.filter(f => f.status === 'waiting').length, '', 'waiting') + card('WAITING TO CONFIRM', wc, '', 'wc') + card('CONFIRMED BOOKING', bk, '', 'cb') + card('NO FOOD LIST', ftAlerts().nf.length, '#A63A2E', 'nofood') + card('TOTAL FT', L.length, '', 'all') + '</div>' +
       (ks.length ? '<div class="card" style="padding:0;overflow:auto;margin-bottom:16px;"><table class="proc-table" style="table-layout:auto;"><thead><tr><th>Month</th><th class="num">Booked</th><th class="num">Waiting</th><th class="num">Waiting to confirm</th><th class="num">Confirmed booking</th><th class="num">Total FT</th></tr></thead><tbody>' + ks.map(k => { const m = mon[k]; return '<tr><td>' + ftEsc(monthLabel(k)) + '</td><td class="num">' + m.b + '</td><td class="num">' + m.w + '</td><td class="num">' + m.wc + '</td><td class="num">' + m.cb + '</td><td class="num"><b>' + m.t + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '');
+  }
+  // Dashboard filter: clicking a card opens a folder with just those food tastings
+  let ftFilter = '';
+  const FT_FILTERS = {
+    booked:  { label:'Booked (FT)',        test: f => !f.evaluation && f.status === 'booked' },
+    waiting: { label:'Waiting (FT)',       test: f => !f.evaluation && f.status === 'waiting' },
+    wc:      { label:'Waiting to confirm', test: f => f.evaluation && f.evaluation.outcome === 'waiting-confirm' },
+    cb:      { label:'Confirmed booking',  test: f => f.evaluation && f.evaluation.outcome === 'booked' },
+    nofood:  { label:'No food list',       test: f => !f.evaluation && ftNoFood(f) }
+  };
+  function ftSetFilter(k){
+    ftFilter = (k === 'all' || k === ftFilter) ? '' : k;
+    if(ftFilter){
+      folderOpen.add('ft|f|' + ftFilter);
+      groupByMonth(foodTastings.filter(FT_FILTERS[ftFilter].test)).months.forEach(mo => folderOpen.add('ft|f|' + ftFilter + '|' + mo.key));
+    }
+    renderFtSaved();
+    if(ftFilter){ const el = document.getElementById('ftSavedList'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
   }
   function ftCardHtml(f){
     const nf = ftNoFood(f), ev = f.evaluation, due = ftNeedsEval(f);
     return '<div class="recipe-item' + (nf && !ev ? ' ft-red' : '') + '" data-id="' + f.id + '"><div><span class="cat-tag date-tag">📅 ' + ftEsc(fmtIso(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + '</span> <span class="cat-tag">' + (ev ? (ev.outcome === 'booked' ? '✓ CLOSED · BOOKED ' + ftEsc(fmtIso(ev.eventDate)) : '✓ CLOSED · WAITING TO CONFIRM') : (f.status === 'booked' ? 'BOOKED' : 'WAITING')) + '</span> <span class="cat-tag">' + (f.pax || 0) + ' pax</span>' +
       (nf ? ' <span class="cat-tag ft-redtag">⚠ NO FOOD LIST — due ' + ftEsc(shortDate(ftDueIso(f))) + '</span>' : ' <span class="cat-tag">' + f.foods.length + ' dishes</span>') + (due ? ' <span class="cat-tag ft-redtag">🔔 needs evaluation</span>' : '') +
       '<div class="rname">' + ftEsc(f.packageName || 'Food tasting') + '</div><div class="rmeta">' + (f.description ? 'Client: <b>' + ftEsc(f.description) + '</b> · ' : '') + 'Sales: ' + ftEsc(f.sales || '—') + (ev && ev.outcome === 'waiting-confirm' ? ' · Result: ' + ftEsc(ev.note) : '') + '</div></div>' +
-      '<div class="ft-acts"><button type="button" class="print-btn" data-ftact="view">View</button>' + (!ev && canEdit() ? '<button type="button" class="print-btn" data-ftact="edit">Edit</button>' : '') + (due && canEdit() ? '<button type="button" class="save-btn" style="width:auto;margin:0;padding:8px 14px;" data-ftact="eval">Evaluate</button>' : '') + (canDeletePackage() ? '<button type="button" class="print-btn" data-ftact="del">Delete</button>' : '') + '</div></div>';
+      '<div class="ft-acts"><button type="button" class="print-btn" data-ftact="view">View</button>' + ((!ev && canEdit()) || (ev && canEditClosedFt()) ? '<button type="button" class="print-btn" data-ftact="edit">Edit</button>' : '') + (due && canEdit() ? '<button type="button" class="save-btn" style="width:auto;margin:0;padding:8px 14px;" data-ftact="eval">Evaluate</button>' : '') + (canDeletePackage() ? '<button type="button" class="print-btn" data-ftact="del">Delete</button>' : '') + '</div></div>';
   }
   function renderFtSaved(){
     const el = document.getElementById('ftSavedList'); if(!el) return;
     document.getElementById('ftDash').innerHTML = ftDashHtml();
     if(!foodTastings.length){ el.innerHTML = '<div class="empty-state">No food tastings saved yet.</div>'; return; }
+    if(ftFilter && FT_FILTERS[ftFilter]){
+      const F = FT_FILTERS[ftFilter], hit = foodTastings.filter(F.test);
+      const bar = '<div class="ft-filterbar">Showing: <b>' + ftEsc(F.label) + '</b> · ' + hit.length + ' filed <button type="button" class="print-btn" data-ftclear="1">Show all food tastings</button></div>';
+      el.innerHTML = bar + (hit.length ? folderHtml('ft|f|' + ftFilter, '📂', F.label, hit.length, () => groupByMonth(hit).months.map(mo =>
+        folderHtml('ft|f|' + ftFilter + '|' + mo.key, '📁', mo.label, mo.items.length, () => mo.items.slice().sort(newestFirst).map(ftCardHtml).join(''), 'sub', false)).join(''), '', false) : '<div class="empty-state">No food tastings in this folder.</div>');
+      return;
+    }
     const nf = foodTastings.filter(f => !f.evaluation && ftNoFood(f)).sort(newestFirst), rest = foodTastings.filter(f => !(!f.evaluation && ftNoFood(f)));
     let h = nf.length ? folderHtml('ft|nofood', '⚠️', 'No food items / incomplete details', nf.length, () => '<div class="ft-b nf">⚠ These food tastings still have no food list. The list must be placed 3 days before the date — chef discretion if late.</div>' + nf.map(ftCardHtml).join(''), 'ft-redf', false) : '';
+    // open cards are listed directly; closed (evaluated) ones are tucked in a "Closed" subfolder
+    const ftBody = (items, fid) => {
+      const sorted = items.slice().sort(newestFirst), op = sorted.filter(f => !f.evaluation), cl = sorted.filter(f => f.evaluation);
+      return op.map(ftCardHtml).join('') + (cl.length ? folderHtml('ft|closed|' + fid, '✅', 'Closed food tastings', cl.length, () => cl.map(ftCardHtml).join(''), 'sub', false) : '');
+    };
     groupByMonth(rest).months.forEach(mo => {
       const mode = folderModes['ft|' + mo.key] || 'all';
-      h += folderHtml('ft|m|' + mo.key, '📁', mo.label, mo.items.length, () => mode === 'all' ? modeBarHtml('ft', mo.key, mode) + mo.items.sort(newestFirst).map(ftCardHtml).join('') :
-        modeBarHtml('ft', mo.key, mode) + groupInMonth(mo.items, mode).map(g => folderHtml('ft|' + mode[0] + '|' + mo.key + '|' + g.key, '📂', g.label, g.items.length, () => g.items.map(ftCardHtml).join(''), 'sub', false)).join(''), '', false);
+      h += folderHtml('ft|m|' + mo.key, '📁', mo.label, mo.items.length, () => mode === 'all' ? modeBarHtml('ft', mo.key, mode) + ftBody(mo.items, mo.key) :
+        modeBarHtml('ft', mo.key, mode) + groupInMonth(mo.items, mode).map(g => folderHtml('ft|' + mode[0] + '|' + mo.key + '|' + g.key, '📂', g.label, g.items.length, () => ftBody(g.items, mode[0] + '|' + mo.key + '|' + g.key), 'sub', false)).join(''), '', false);
     });
     el.innerHTML = h;
   }
+  const ftEvalOpen = new Set();
   function renderFtEval(){
     const el = document.getElementById('ftEvalList'); if(!el) return;
     const L = foodTastings.filter(ftNeedsEval).sort(newestFirst);
     if(!L.length){ el.innerHTML = '<div class="empty-state">Nothing to evaluate. Food tastings appear here once their date and time have passed; after you submit, the result is attached to the saved food tasting and it is closed.</div>'; return; }
-    el.innerHTML = '<p class="section-label" style="color:#9C9F92;">FOR EVALUATION — copies of finished food tastings that still need a result</p>' + L.map(f => '<div class="card ft-evalcard" data-id="' + f.id + '">' + ftDetailHtml(f) +
+    el.innerHTML = '<p class="section-label" style="color:#9C9F92;">FOR EVALUATION — copies of finished food tastings that still need a result</p>' + L.map(f => '<div class="card ft-evalcard" data-id="' + f.id + '"><details class="ft-evdd" data-id="' + f.id + '"' + (ftEvalOpen.has(f.id) ? ' open' : '') + '><summary><b>' + ftEsc(f.packageName || 'Food tasting') + '</b>' + (f.description ? ' · ' + ftEsc(f.description) : '') + ' · ' + (f.pax || 0) + ' pax <span class="ft-evdd-sub">📅 ' + ftEsc(shortDate(f.date)) + (f.time ? ' · ' + ftEsc(f.time) : '') + ' · Sales: ' + ftEsc(f.sales || '—') + '</span></summary>' + ftDetailHtml(f) +
       (canEdit() ? '<div class="ft-evform"><label><input type="radio" name="evo-' + f.id + '" value="waiting-confirm"> WAITING TO CONFIRM</label><label><input type="radio" name="evo-' + f.id + '" value="booked"> BOOKED</label>' +
         '<div class="ft-ev-wc" style="display:none;"><label>What happened — result of this food tasting</label><textarea rows="3" class="ft-ev-note" placeholder="Client feedback, what they are deciding on…"></textarea></div>' +
         '<div class="ft-ev-bk" style="display:none;"><label>Date of the event</label><input type="date" class="ft-ev-date"></div><div class="form-msg ft-ev-msg"></div>' +
-        '<button type="button" class="save-btn" data-ftsub="' + f.id + '" style="width:auto;padding:10px 18px;">Confirm &amp; close</button><small style="display:block;color:var(--steel);margin-top:6px;">Once submitted it is closed and can no longer be edited.</small></div>' : '<p class="pkgf-note">Ask Sales, a Manager or the Admin to evaluate it.</p>') + '</div>').join('');
+        '<button type="button" class="save-btn" data-ftsub="' + f.id + '" style="width:auto;padding:10px 18px;">Confirm &amp; close</button><small style="display:block;color:var(--steel);margin-top:6px;">Once submitted it is closed and can no longer be edited.</small></div>' : '<p class="pkgf-note">Ask Sales, a Manager or the Admin to evaluate it.</p>') + '</details></div>').join('');
   }
   function renderFtAll(){ ftRenderBanners(); renderFtSaved(); renderFtEval(); try{ if(window.__sideNavBuilt) renderSideNav(); }catch(e){} }
   function renderFoodTasting(){
@@ -8440,7 +8482,11 @@ function initApp(){
     else if(a === 'del'){ const f = foodTastings.find(x => x.id === id); if(f && confirm('Delete this food tasting (' + (f.packageName || '') + ', ' + f.date + ')? It will be removed from the calendar.')){ await ftMutate(l => l.filter(x => x.id !== id)); await ftLog('Deleted', f, f.evaluation ? 'was closed' : ''); renderCalendar(); renderFtAll(); } }
   });
   wireFolderClicks(document.getElementById('ftSavedList'), renderFtSaved);
+  document.getElementById('ftDash').addEventListener('click', e => { const c = e.target.closest('[data-ftf]'); if(c) ftSetFilter(c.dataset.ftf); });
+  document.getElementById('ftDash').addEventListener('keydown', e => { if(e.key !== 'Enter' && e.key !== ' ') return; const c = e.target.closest('[data-ftf]'); if(c){ e.preventDefault(); ftSetFilter(c.dataset.ftf); } });
+  document.getElementById('ftSavedList').addEventListener('click', e => { if(e.target.closest('[data-ftclear]')) ftSetFilter('all'); });
   const ftEvalEl = document.getElementById('ftEvalList');
+  ftEvalEl.addEventListener('toggle', e => { const d = e.target; if(d && d.classList && d.classList.contains('ft-evdd')){ if(d.open) ftEvalOpen.add(d.dataset.id); else ftEvalOpen.delete(d.dataset.id); } }, true);
   ftEvalEl.addEventListener('change', e => { const c = e.target.closest('.ft-evalcard'); if(!c || e.target.type !== 'radio') return; c.querySelector('.ft-ev-wc').style.display = e.target.value === 'waiting-confirm' ? 'block' : 'none'; c.querySelector('.ft-ev-bk').style.display = e.target.value === 'booked' ? 'block' : 'none'; });
   ftEvalEl.addEventListener('click', async e => {
     const b = e.target.closest('[data-ftsub]'); if(!b || !canEdit()) return; const c = b.closest('.ft-evalcard'), id = b.dataset.ftsub, msg = c.querySelector('.ft-ev-msg');
@@ -9261,6 +9307,7 @@ async function saveCreds(){ await window.storage.set(CRED_KEY, JSON.stringify(CR
 
 const ROLE_LABELS = { admin:'Level 1 — Admin', manager:'Level 2 — Manager', assistant:'Level 3 — Assistant', sales:'Sales — Packages only', viewer:'Level 4 — Viewer' };
 function canCreate(){ return currentRole === 'admin' || currentRole === 'manager' || currentRole === 'sales'; }
+function canEditClosedFt(){ return currentRole === 'admin' || currentRole === 'manager' || currentRole === 'sales'; }   // may edit food tastings that were already evaluated/closed
 function canEdit(){ return currentRole === 'admin' || currentRole === 'manager' || currentRole === 'sales'; }
 function canDelete(){ return currentRole === 'admin'; }
 // Sales may delete saved packages (only) — every add/edit/delete is written to the package change history.
