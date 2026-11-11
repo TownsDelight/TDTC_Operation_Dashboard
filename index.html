@@ -2799,7 +2799,7 @@
         </div>
         <div style="max-width:640px;margin-bottom:14px;"><label for="ftDesc">Description <span style="font-weight:400;color:var(--steel);">(client name/s)</span></label><input type="text" id="ftDesc" maxlength="200" placeholder="e.g. Mr. &amp; Mrs. Santos"></div>
         <div class="field-row" style="grid-template-columns:1fr 1fr;max-width:640px;">
-          <div><label for="ftPkg">Package</label><div class="ft-pkgs" id="ftPkg"><label><input type="checkbox" class="ftPkgCb" value="PRESTIGE"> PRESTIGE</label><label><input type="checkbox" class="ftPkgCb" value="DC"> DC</label><label><input type="checkbox" class="ftPkgCb" value="FILIPINIANA"> FILIPINIANA</label><label><input type="checkbox" class="ftPkgCb" value="DI AO"> DI AO</label><label><input type="checkbox" class="ftPkgCb" value="CORPORATE"> CORPORATE</label></div></div>
+          <div><label for="ftPkg">Package</label><div class="ft-pkgs" id="ftPkg"><label><input type="checkbox" class="ftPkgCb" value="PRESTIGE"> PRESTIGE</label><label><input type="checkbox" class="ftPkgCb" value="DC"> DC</label><label><input type="checkbox" class="ftPkgCb" value="FILIPINIANA"> FILIPINIANA</label><label><input type="checkbox" class="ftPkgCb" value="DI"> DI</label><label><input type="checkbox" class="ftPkgCb" value="AO"> AO</label><label><input type="checkbox" class="ftPkgCb" value="CORPORATE"> CORPORATE</label></div></div>
           <div><label for="ftTime">Time</label><input type="time" id="ftTime"></div>
         </div>
         <label>Status</label>
@@ -8341,7 +8341,7 @@ function initApp(){
   function ftEdit(id){
     const f = foodTastings.find(x => x.id === id); if(!f || f.evaluation) return;
     goTab('foodtasting', 'input'); ftInitForm(); ftReset(); ftEditId = id; ftDate = f.date; ftCur = isoToDate(f.date);
-    document.getElementById('ftSales').value = f.sales || ''; document.getElementById('ftDesc').value = f.description || ''; document.getElementById('ftPax').value = f.pax || ''; { const pt = f.packageTypes || (f.packageName || '').split(/\s*[,+]\s*/); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = pt.includes(c.value)); } document.getElementById('ftTime').value = f.time || '';
+    document.getElementById('ftSales').value = f.sales || ''; document.getElementById('ftDesc').value = f.description || ''; document.getElementById('ftPax').value = f.pax || ''; { const pt = (f.packageTypes || (f.packageName || '').split(/\s*[,+]\s*/)).flatMap(x => x === 'DI AO' ? ['DI','AO'] : [x]); document.querySelectorAll('.ftPkgCb').forEach(c => c.checked = pt.includes(c.value)); } document.getElementById('ftTime').value = f.time || '';
     document.getElementById('ftStBooked').checked = f.status === 'booked'; document.getElementById('ftStWaiting').checked = f.status === 'waiting'; document.getElementById('ftFollow').checked = !!f.foodToFollow;
     ftBuildFoods(); (f.foods || []).forEach(x => ftAddRow(document.querySelector('#ftFoods .ft-cat[data-cat="' + x.category + '"]') || document.querySelector('#ftFoods .ft-cat:last-child'), x));
     document.querySelectorAll('#ftFoods .ft-cat').forEach(ce => { if(!ce.querySelector('.ft-row')) ftAddRow(ce); });
