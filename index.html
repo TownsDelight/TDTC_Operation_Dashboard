@@ -5437,6 +5437,7 @@ function initApp(){
       return `
         <div class="ccp-column" data-course="${escapeHtml(course)}">
           <div class="ccp-col-header">${escapeHtml(course)}</div>
+          <button class="print-btn ccp-print-cat-btn" type="button" style="margin:0 0 8px;width:100%;" ${options.length ? '' : 'disabled'}>🖨 Print all ${escapeHtml(course)} recipes</button>
           <select class="ccp-select" ${options.length ? '' : 'disabled'}>
             <option value="">${options.length ? 'Select recipe…' : 'No recipes yet'}</option>
             ${options.map(r=>`<option value="${r.id}" ${r.id===selectedId?'selected':''}>${escapeHtml(r.name)}</option>`).join('')}
@@ -5449,12 +5450,62 @@ function initApp(){
     ccpBoardEl.querySelectorAll('.ccp-column').forEach(col=>{
       const course = col.dataset.course;
       const select = col.querySelector('.ccp-select');
+      col.querySelector('.ccp-print-cat-btn').addEventListener('click', ()=> printCategoryRecipes(course));
       select.addEventListener('change', ()=>{
         ccpSelection[course] = select.value;
         renderCcpDetail(course);
       });
       renderCcpDetail(course);
     });
+  }
+
+  // ---------- Print ALL recipes, grouped by category, one costing table per recipe ----------
+  function recipeTablePrintHtml(recipe){
+    const yieldVal = recipe.yieldVal > 0 ? recipe.yieldVal : 1;
+    const num = (n, d) => (Number(n) || 0).toLocaleString('en-PH', { maximumFractionDigits: d });
+    const sections = getIngredientSections(recipe, 1);
+    const body = sections.map((sec, idx) => {
+      const head = idx === 0 ? '' : `<tr class="rx-comp"><td colspan="6">COMPONENT: ${escapeHtml(sec.title)}</td></tr>`;
+      const rows = sec.ingredients.map(ing => {
+        const qty = ing.qty || 0, price = ing.unitPrice || 0;
+        return `<tr><td class="c">${escapeHtml(String(ing.name || '').toUpperCase())}</td><td class="c">${PHP(price)}</td><td class="c">${num(qty, 5)}</td><td class="c">${escapeHtml(String(ing.uom || '').toUpperCase())}</td><td class="c">${num(qty / yieldVal, 5)}</td><td class="c">${num(qty * price / yieldVal, 4)}</td></tr>`;
+      }).join('');
+      return head + (rows || (idx === 0 ? '<tr><td class="c" colspan="6">No ingredients recorded.</td></tr>' : ''));
+    }).join('');
+    return `
+      <table class="rx">
+        <thead>
+          <tr><th class="rx-title" colspan="6">${escapeHtml(String(recipe.name || '').toUpperCase())}</th></tr>
+          <tr class="rx-cols"><th>INGREDIENTS</th><th>PRICE PER UNIT</th><th>QUANTITY</th><th>UOM</th><th>QUANTITY PER PAX</th><th>PRICE PER PAX</th></tr>
+        </thead>
+        <tbody>${body}</tbody>
+        <tfoot>
+          <tr><td class="rx-k" colspan="2">TOTAL PRICE PER YIELD</td><td class="rx-v">${PHP(recipe.totalCost || 0)}</td><td colspan="3" class="rx-blank"></td></tr>
+          <tr><td class="rx-k" colspan="2">YIELD</td><td class="rx-v">${num(recipe.yieldVal, 2)}</td><td colspan="3" class="rx-blank"></td></tr>
+          <tr><td class="rx-k" colspan="2">PRICE PER PAX</td><td class="rx-v">${PHP(recipe.costPerPax || 0)}</td><td colspan="3" class="rx-blank"></td></tr>
+          <tr><td class="rx-k" colspan="2">MENU TYPE</td><td class="rx-v"><i>${escapeHtml(String(recipe.category || 'Uncategorized').toUpperCase())}</i></td><td colspan="3" class="rx-blank"></td></tr>
+        </tfoot>
+      </table>`;
+  }
+  function printCategoryRecipes(cat){
+    const list = recipes.filter(r => (r.category || 'Uncategorized') === cat).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    if(!list.length){ alert('There are no saved ' + cat + ' recipes to print yet.'); return; }
+    const css = `<style>
+      .rx{width:100%;border-collapse:collapse;margin:0 0 22px;page-break-inside:avoid;break-inside:avoid;}
+      .rx th,.rx td{border:1px solid #000;padding:5px 8px;font-size:11px;text-align:center;font-family:'Inter',Arial,sans-serif;text-transform:none;letter-spacing:0;color:#000;}
+      .rx .rx-title{background:#000;color:#fff;font-size:14px;padding:12px;text-align:center;letter-spacing:.02em;}
+      .rx .rx-cols th{font-weight:700;font-size:10.5px;background:#fff;}
+      .rx .rx-comp td{background:#EDEAE0;font-weight:700;text-align:left;font-size:10.5px;}
+      .rx .rx-k{background:#CFE2F3;text-align:left;font-weight:500;}
+      .rx .rx-v{background:#FFF2CC;text-align:center;}
+      .rx .rx-blank{border:none;}
+      .cat-head{font-family:'DM Sans',sans-serif;font-size:18px;margin:0 0 12px;padding-bottom:6px;border-bottom:2px solid #000;}
+    </style>`;
+    const html = css +
+      `<h2 class="cat-head">${escapeHtml(cat)} <span style="font-weight:400;font-size:12px;color:#6B6F66;">· ${list.length} recipe${list.length === 1 ? '' : 's'}</span></h2>` +
+      list.map(recipeTablePrintHtml).join('') +
+      `<p class="stamp">Printed ${new Date().toLocaleString('en-PH')}</p>`;
+    printSection(cat + ' Recipes — Recipe Manual', html);
   }
 
   function renderCcpDetail(course){
