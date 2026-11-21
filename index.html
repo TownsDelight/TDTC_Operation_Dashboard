@@ -322,8 +322,35 @@
   .pkg-row:first-of-type{padding-top:0;}
   .pkg-row .mini-label{display:none;}
   .svc-extra-row{grid-template-columns:1.3fr 0.7fr 0.5fr 0.7fr 30px;}
-  .pkg-row.food-row{grid-template-columns:1fr 1.8fr 0.9fr 0.9fr 30px;}
-  .pkg-row.extra-food-row{grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.8fr 0.8fr 0.9fr 30px;}
+  .pkg-row.food-row{grid-template-columns:1fr 1.8fr 0.9fr 0.8fr 0.9fr 30px;}
+  .f-hc-display{padding:9px 11px;border:1px dashed #C9A36A;border-radius:3px;background:#FBF3E4;font-family:'IBM Plex Mono',monospace;color:#8A4B16;}
+  .pkg-row.extra-food-row{grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.8fr 0.8fr 0.8fr 0.9fr 30px;}
+  /* Raw price/pax is Admin-only: everyone else only sees the selling price */
+  body.not-admin .raw-only{display:none !important;}
+  @media (min-width:521px){
+    body.not-admin #pkgFoodHead{grid-template-columns:1fr 1.8fr 0.9fr 30px !important;}
+    body.not-admin .pkg-row.food-row{grid-template-columns:1fr 1.8fr 0.9fr 30px;}
+    body.not-admin #pkgExtraHead{grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.9fr 0.9fr 30px !important;}
+    body.not-admin .pkg-row.extra-food-row{grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.9fr 0.9fr 30px;}
+  }
+  .hc-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;}
+  @media (max-width:900px){.hc-grid{grid-template-columns:1fr;}}
+  .hc-card{background:#fff;border:1px solid var(--line);border-radius:6px;padding:18px 20px;}
+  .hc-card h3{margin:0 0 4px;font-size:15px;}
+  .hc-card p.hc-help{margin:0 0 12px;font-size:12.5px;color:var(--ink-soft);}
+  .hc-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+  .hc-form > div{display:flex;flex-direction:column;gap:4px;min-width:130px;flex:1;}
+  .hc-form label{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--steel);}
+  .hc-form select,.hc-form input{padding:9px 10px;border:1px solid var(--line);border-radius:3px;background:#fff;font-size:13px;width:100%;box-sizing:border-box;}
+  .hc-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;}
+  .hc-tbl th{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--steel);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);}
+  .hc-tbl td{padding:8px;border-bottom:1px solid var(--surface-alt);vertical-align:middle;}
+  .hc-tbl .num{text-align:right;font-family:'IBM Plex Mono',monospace;}
+  .hc-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;background:var(--surface-alt);}
+  .hc-pill.cat{background:#E6EEF5;color:#3B5B77;} .hc-pill.food{background:#F6E7D6;color:#8A4B16;}
+  .hc-x{background:none;border:none;color:#A63A2E;cursor:pointer;font-size:16px;}
+  .hc-empty{font-size:12.5px;color:var(--steel);padding:10px 0;}
+  .hc-msg{font-size:12.5px;margin-top:8px;min-height:16px;} .hc-msg.ok{color:#3E6B3A;} .hc-msg.err{color:#A63A2E;}
   .pkg-row.extra-food-row .f-extra-qty{width:100%; min-width:0; box-sizing:border-box; padding-left:10px; padding-right:6px; -moz-appearance:textfield; appearance:textfield;}
   .pkg-row.extra-food-row .f-extra-qty::-webkit-outer-spin-button,
   .pkg-row.extra-food-row .f-extra-qty::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
@@ -2227,6 +2254,7 @@
     <button class="tab-btn" data-tab="calendar"><span class="clip"></span>Calendar</button>
     <button class="tab-btn" data-tab="history"><span class="clip"></span>History</button>
     <button class="tab-btn" data-tab="foodtasting"><span class="clip"></span>Food Tasting</button>
+    <button class="tab-btn" id="hiddenChargeTabBtn" data-tab="hiddencharge" style="display:none;"><span class="clip"></span>Hidden Charge</button>
   </div>
 
   <!-- ===================== TAB 1 ===================== -->
@@ -2581,6 +2609,9 @@
     </div>
   </div>
 
+  <!-- ===================== TAB: HIDDEN CHARGE (Admin only) ===================== -->
+  <section class="panel" id="panel-hiddencharge"></section>
+
   <!-- ===================== TAB: PACKAGE COST CALCULATOR ===================== -->
   <section class="panel" id="panel-packages" data-view="input">
     <div class="builder-grid">
@@ -2612,10 +2643,11 @@
           </div>
 
           <p class="section-label" style="margin-top:22px;">FOOD ITEMS</p>
-          <div class="headcols" style="grid-template-columns:1fr 1.8fr 0.9fr 0.9fr 30px;">
+          <div class="headcols" id="pkgFoodHead" style="grid-template-columns:1fr 1.8fr 0.9fr 0.8fr 0.9fr 30px;">
             <span>Category</span>
             <span>Recipe</span>
-            <span>Price /pax (₱)</span>
+            <span class="raw-only">Price /pax (₱)</span>
+            <span class="raw-only">Hidden charge (₱)</span>
             <span>Selling price (33.3%)</span>
             <span></span>
           </div>
@@ -2623,11 +2655,12 @@
           <button class="add-ingredient-btn" id="addPkgFoodBtn" type="button">+ Add food item</button>
 
           <p class="section-label" style="margin-top:22px;">ADDITIONAL FOOD ITEMS <span style="color:var(--steel);">(client requests — not part of the package pax yield · price × pax)</span></p>
-          <div class="headcols" style="grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.8fr 0.8fr 0.9fr 30px;">
+          <div class="headcols" id="pkgExtraHead" style="grid-template-columns:1fr 1.4fr minmax(90px,0.8fr) 0.8fr 0.8fr 0.8fr 0.9fr 30px;">
             <span>Category</span>
             <span>Recipe</span>
             <span>Pax</span>
-            <span>Price /pax (₱)</span>
+            <span class="raw-only">Price /pax (₱)</span>
+            <span class="raw-only">Hidden charge (₱)</span>
             <span>Selling price /pax</span>
             <span>Line total (selling)</span>
             <span></span>
@@ -2678,7 +2711,9 @@
       <div>
         <div class="summary-card">
           <p class="section-label">LIVE PACKAGE SUMMARY</p>
-          <div class="summary-line"><span>Food input subtotal (per pax)</span><span id="pkgFoodSubtotal">₱0.00</span></div>
+          <div class="summary-line raw-only"><span>Food input subtotal (per pax)</span><span id="pkgFoodSubtotal">₱0.00</span></div>
+          <div class="summary-line raw-only"><span>Hidden charge included (per pax)</span><span id="pkgHiddenPerPax">₱0.00</span></div>
+          <div class="summary-line raw-only"><span>Hidden charge total (× pax)</span><span id="pkgHiddenTotal">₱0.00</span></div>
           <div class="summary-line"><span>Selling price (per pax)</span><span id="pkgFoodCharged">₱0.00</span></div>
           <div class="summary-line"><span>Number of pax</span><span id="pkgPaxDisplay">— pax</span></div>
           <div class="summary-line"><span>Selling price × pax</span><span id="pkgFoodChargedTotal">₱0.00</span></div>
@@ -2694,7 +2729,7 @@
             <div class="amount" id="pkgPerPax" style="font-size:28px;">₱0.00</div>
           </div>
 
-          <div class="pkg-piechart">
+          <div class="pkg-piechart raw-only">
             <p class="section-label" style="color:#9C9F92;margin-top:18px;margin-bottom:10px;">COST BREAKDOWN</p>
             <div class="piechart-row">
               <div class="piechart-circle" id="pkgPieChart"></div>
@@ -2702,7 +2737,7 @@
             </div>
           </div>
 
-          <div class="pkg-piechart">
+          <div class="pkg-piechart raw-only">
             <p class="section-label" style="color:#9C9F92;margin-top:18px;margin-bottom:10px;">PRICE STRUCTURE (% of total)</p>
             <div class="vat-input-row">
               <label for="pkgVatRate">VAT rate</label>
@@ -3538,7 +3573,7 @@ function initApp(){
         const rec = findRec(fi);
         if(!rec) return fi;
         const price = rec.costPerPax || 0;
-        const charged = price * MARKUP;
+        const charged = price * MARKUP + (fi.hiddenFee || 0);   // keeps the hidden fee saved with this package
         if(fi.description !== rec.name || Math.abs((fi.price||0) - price) > 1e-9 || Math.abs((fi.charged||0) - charged) > 1e-9) dirty = true;
         return { ...fi, description: rec.name, recipeId: rec.id, price, charged };
       });
@@ -3546,7 +3581,7 @@ function initApp(){
         const rec = findRec(fi);
         if(!rec) return fi;
         const price = rec.costPerPax || 0;
-        const charged = price * MARKUP;
+        const charged = price * MARKUP + (fi.hiddenFee || 0);
         const lineCost = price * (fi.qty || 0);
         const lineCharged = charged * (fi.qty || 0);
         if(fi.description !== rec.name || Math.abs((fi.price||0) - price) > 1e-9 || Math.abs((fi.charged||0) - charged) > 1e-9) dirty = true;
@@ -4237,6 +4272,7 @@ function initApp(){
       if(btn.dataset.tab === 'inventory') renderInventoryTable();
       if(btn.dataset.tab === 'dispatch') renderDispatch();
       if(btn.dataset.tab === 'calendar') renderCalendar();
+      if(btn.dataset.tab === 'hiddencharge'){ loadHiddenCharges(); }
     });
   });
 
@@ -5030,31 +5066,33 @@ function initApp(){
   }
 
   function viewPackageDetail(pkg){
-    const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td><td>${PHP(f.price||0)}</td></tr>`).join('');
+    const _adm = canManageAccess();   // raw price/pax: Admin only
+    const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td>${_adm ? `<td>${PHP(f.price||0)}</td>` : ''}<td>${PHP(f.charged||0)}</td></tr>`).join('');
     const extraRows = (pkg.extraFoodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||'—')}</td><td>${f.qty} pax × ${PHP(f.charged||0)} = ${PHP(f.lineCharged||0)}</td></tr>`).join('');
     const svcRows = (pkg.serviceItems||[]).filter(s=>s.qty>0).map(s => `<tr><td>${escapeHtml(s.role)}</td><td>${s.qty} × ${PHP(s.price)}</td></tr>`).join('');
     const miscRows = (pkg.miscItems||[]).map(m => `<tr><td>${escapeHtml(m.desc||m.description||'—')}</td><td>${PHP(m.price||0)}</td></tr>`).join('');
-    const structure = pkgPriceStructure(pkg);
+    const structure = _adm ? pkgPriceStructure(pkg) : null;
     openViewModal(pkg.name, `
       <button type="button" class="print-btn pkg-view-print-btn" style="margin-bottom:12px;">🖨 Print this package</button>
       ${pkg.soNumber ? `<p><span class="so-tag">SO# ${escapeHtml(pkg.soNumber)}</span></p>` : ''}
       ${pkgDate(pkg) ? `<p style="font-size:12.5px;color:var(--ink-soft);">📅 Event date: <b>${fmtIso(pkgDate(pkg))}</b></p>` : ''}
       <p style="font-size:12.5px;color:var(--ink-soft);">${pkg.pax ? pkg.pax + ' pax · ' : ''}selling price/pax: ${PHP(pkg.foodCharged)} · service: ${PHP(pkg.serviceTotal||0)} · misc (flat): ${PHP(pkg.miscTotal)}</p>
       <p style="font-weight:600;margin:10px 0 4px;">Food items</p>
-      <table class="access-table"><tbody>${foodRows || '<tr><td>None</td></tr>'}</tbody></table>
+      <table class="access-table"><thead><tr><th>Recipe</th>${_adm ? '<th>Price /pax</th>' : ''}<th>Selling price (33.3%)</th></tr></thead><tbody>${foodRows || '<tr><td>None</td></tr>'}</tbody></table>
       ${extraRows ? `<p style="font-weight:600;margin:10px 0 4px;">Additional food items (not in package pax)</p>
       <table class="access-table"><tbody>${extraRows}</tbody></table>` : ''}
       <p style="font-weight:600;margin:10px 0 4px;">Service roles</p>
       <table class="access-table"><tbody>${svcRows || '<tr><td>None</td></tr>'}</tbody></table>
       <p style="font-weight:600;margin:10px 0 4px;">Miscellaneous</p>
       <table class="access-table"><tbody>${miscRows || '<tr><td>None</td></tr>'}</tbody></table>
+      ${_adm ? pkgHcDetailHtml(pkg) : ''}
       <p style="margin-top:10px;font-weight:600;">Grand total: ${PHP(pkg.grandTotal)}</p>
       <p style="font-weight:600;">Price per 1 pax: ${PHP(pkg.pricePerPax || 0)}</p>
-      <div class="pkg-piechart">
+      ${_adm ? `<div class="pkg-piechart">
         <p class="section-label" style="color:var(--steel);margin-bottom:10px;">COST BREAKDOWN</p>
         ${buildPieChartHtml(pkgCostBreakdownSlices(pkg))}
-      </div>
-      ${structure ? `
+      </div>` : ''}
+      ${!_adm ? '' : structure ? `
         <div class="pkg-piechart">
           <p class="section-label" style="color:var(--steel);margin-bottom:10px;">PRICE STRUCTURE (% of ${PHP(structure.packageCost)} standard package · VAT ${structure.vatRate}%)</p>
           ${buildPieChartHtml(structure.slices, structure.marginPct < 0 ? '⚠ Cost of Goods + VAT exceed the total package price' : null)}
@@ -5074,17 +5112,18 @@ function initApp(){
   // standalone print document for one saved package, including both charts
   // as static, non-interactive versions (a conic-gradient circle + legend).
   function printPackage(pkg){
-    const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td><td class="num">${PHP(f.price||0)}</td><td class="num">${PHP(f.charged||0)}</td></tr>`).join('');
+    const _adm = canManageAccess();   // raw price/pax: Admin only
+    const foodRows = (pkg.foodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||f.recipeName||f.desc||'—')}</td>${_adm ? `<td class="num">${PHP(f.price||0)}</td>` : ''}<td class="num">${PHP(f.charged||0)}</td></tr>`).join('');
     const extraRows = (pkg.extraFoodItems||[]).map(f => `<tr><td>${escapeHtml(f.description||'—')}</td><td class="num">${f.qty} pax × ${PHP(f.charged||0)}</td><td class="num">${PHP(f.lineCharged||0)}</td></tr>`).join('');
     const svcRows = (pkg.serviceItems||[]).filter(s=>s.qty>0).map(s => `<tr><td>${escapeHtml(s.role)}</td><td class="num">${s.qty} × ${PHP(s.price)}</td><td class="num">${PHP((s.qty||0)*(s.price||0))}</td></tr>`).join('');
     const miscRows = (pkg.miscItems||[]).map(m => `<tr><td>${escapeHtml(m.desc||m.description||'—')}</td><td class="num" colspan="2">${PHP(m.price||0)}</td></tr>`).join('');
-    const structure = pkgPriceStructure(pkg);
+    const structure = _adm ? pkgPriceStructure(pkg) : null;
     printSection(pkg.name + ' — Package Cost Calculator', `
       <h1>${escapeHtml(pkg.name)}</h1>
       <p class="print-sub">${pkgDate(pkg) ? 'Event date: ' + fmtIso(pkgDate(pkg)) + ' · ' : ''}${pkg.soNumber ? 'SO# ' + escapeHtml(pkg.soNumber) + ' · ' : ''}${pkg.pax ? pkg.pax + ' pax' : ''}</p>
       <p class="section-label">Food items</p>
       <table>
-        <thead><tr><th>Recipe</th><th class="num">Price /pax</th><th class="num">Selling price (33.3%)</th></tr></thead>
+        <thead><tr><th>Recipe</th>${_adm ? '<th class="num">Price /pax</th>' : ''}<th class="num">Selling price (33.3%)</th></tr></thead>
         <tbody>${foodRows || '<tr><td colspan="3">None</td></tr>'}</tbody>
       </table>
       ${extraRows ? `<p class="section-label">Additional food items (not in package pax)</p>
@@ -5104,10 +5143,10 @@ function initApp(){
       </table>
       <p style="margin-top:14px;font-weight:600;">Grand total: ${PHP(pkg.grandTotal)}</p>
       <p style="font-weight:600;">Price per 1 pax: ${PHP(pkg.pricePerPax || 0)}</p>
-      <div class="pkg-piechart">
+      ${_adm ? `<div class="pkg-piechart">
         <p class="section-label">Cost breakdown</p>
         ${buildPieChartHtml(pkgCostBreakdownSlices(pkg))}
-      </div>
+      </div>` : ''}
       ${structure ? `
         <div class="pkg-piechart">
           <p class="section-label">Price structure (% of ${PHP(structure.packageCost)} standard package · VAT ${structure.vatRate}%)</p>
@@ -6965,6 +7004,229 @@ function initApp(){
 
   // ---------- Tab: Package Cost Calculator ----------
   const MARKUP = 3;
+
+  // ---------- Hidden Charge (Admin only to edit; applied silently to every selling price) ----------
+  // Option 1: a flat ₱ per pax added to every recipe of a category.
+  // Option 2: a flat ₱ per pax added to ONE specific food (overrides its category's charge).
+  // Selling price per pax = recipe cost/pax x MARKUP + hidden charge.
+  const HC_KEY = 'kitchen-hidden-charges';
+  let hiddenCharges = { categories:{}, foods:{}, log:[] };
+  // Hidden charges only count for packages first saved on/after this date. Earlier packages are never charged (even when edited).
+  const HC_START = new Date(2026, 10, 21);   // Nov 21, 2026
+  const HC_START_LABEL = 'Nov 21, 2026';
+  let hcApplyNow = true;                     // false while editing a pre-start package
+  function pkgHcEligible(pkg){ if(!pkg || !pkg.savedAt) return false; const d = new Date(pkg.savedAt); return !isNaN(d) && d >= HC_START; }
+  function pkgFeeFor(recipe){ return hcApplyNow ? hiddenFeeFor(recipe) : 0; }
+  function pkgHcTotal(pkg){
+    const food = (pkg.foodItems || []).reduce((s,f)=> s + (f.hiddenFee || 0), 0) * ((pkg.pax || 0) > 0 ? pkg.pax : 1);
+    const extra = (pkg.extraFoodItems || []).reduce((s,f)=> s + (f.hiddenFee || 0) * (f.qty || 0), 0);
+    return food + extra;
+  }
+  function pkgHcBadge(pkg){
+    return pkgHcEligible(pkg)
+      ? '<span class="cat-tag hc-pill food">Hidden charge: +' + PHP(pkgHcTotal(pkg)) + '</span>'
+      : '<span class="cat-tag hc-pill" title="Saved before ' + HC_START_LABEL + '">Hidden charge: not included</span>';
+  }
+  function pkgHcDetailHtml(pkg){
+    if(!pkgHcEligible(pkg)) return '<p style="font-size:12.5px;margin:10px 0 4px;"><span class="hc-pill">Admin only</span> Hidden charge: <b>not included</b> — this package was saved before ' + HC_START_LABEL + '.</p>';
+    const pax = (pkg.pax || 0) > 0 ? pkg.pax : 1;
+    const rows = (pkg.foodItems || []).filter(f => f.hiddenFee).map(f => `<tr><td>${escapeHtml(f.description || '—')}</td><td>+${PHP(f.hiddenFee)} × ${pax} pax</td><td>${PHP(f.hiddenFee * pax)}</td></tr>`)
+      .concat((pkg.extraFoodItems || []).filter(f => f.hiddenFee).map(f => `<tr><td>${escapeHtml(f.description || '—')} (additional)</td><td>+${PHP(f.hiddenFee)} × ${f.qty || 0} pax</td><td>${PHP(f.hiddenFee * (f.qty || 0))}</td></tr>`)).join('');
+    return '<p style="font-weight:600;margin:10px 0 4px;"><span class="hc-pill">Admin only</span> Hidden charge in this package</p>' +
+      (rows ? `<table class="access-table"><tbody>${rows}<tr><td colspan="2"><b>Total hidden charge</b></td><td><b>${PHP(pkgHcTotal(pkg))}</b></td></tr></tbody></table>` : '<p style="font-size:12.5px;color:var(--ink-soft);">No food in this package carried a hidden charge.</p>');
+  }
+  function hiddenFeeFor(recipe){
+    if(!recipe) return 0;
+    const f = hiddenCharges.foods[recipe.id];
+    if(f && f.amount !== undefined && f.amount !== null) return Number(f.amount) || 0;   // specific food wins (0 = exempt)
+    const c = hiddenCharges.categories[recipe.category || ''];
+    return c ? (Number(c.amount) || 0) : 0;
+  }
+  function hcNormalize(o){
+    o = (o && typeof o === 'object') ? o : {};
+    return { categories: (o.categories && typeof o.categories === 'object') ? o.categories : {}, foods: (o.foods && typeof o.foods === 'object') ? o.foods : {}, log: Array.isArray(o.log) ? o.log : [] };
+  }
+  async function loadHiddenCharges(){
+    try{
+      const r = await window.storage.get(HC_KEY);
+      hiddenCharges = hcNormalize(r && r.value ? JSON.parse(r.value) : null);
+    }catch(e){ /* first time: no charges yet */ }
+    if(typeof updatePackageSummary === 'function') updatePackageSummary();
+    if(document.getElementById('panel-hiddencharge')) renderHiddenCharge();
+  }
+  async function hcMutate(fn){
+    if(!canManageAccess()) return false;
+    try{ const r = await window.storage.get(HC_KEY); if(r && r.value) hiddenCharges = hcNormalize(JSON.parse(r.value)); }catch(e){}
+    fn(hiddenCharges);
+    if(hiddenCharges.log.length > 200) hiddenCharges.log.length = 200;
+    await window.storage.set(HC_KEY, JSON.stringify(hiddenCharges));
+    if(typeof updatePackageSummary === 'function') updatePackageSummary();
+    renderHiddenCharge();
+    return true;
+  }
+  function hcLog(d, action, type, target, oldAmt, newAmt){
+    d.log.unshift({ at:new Date().toISOString(), by:currentUser || 'Admin', action, type, target, oldAmt, newAmt });
+  }
+  function hcFmtDate(iso){ try{ return new Date(iso).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return iso || ''; } }
+  function hcMsg(t, ok){ const m = document.getElementById('hcMsg'); if(m){ m.textContent = t; m.className = 'hc-msg ' + (ok ? 'ok' : 'err'); } }
+  function hcAllCategories(){
+    const base = ['Appetizer','Soup','Bread','Salad','Beef Entree','Pork Entree','Chicken Entree','Seafood','Pasta','Dessert','Beverage','Sauce'];
+    return Array.from(new Set(base.concat(recipes.map(r => r.category || '').filter(Boolean)))).sort((a,b)=>a.localeCompare(b));
+  }
+  function renderHiddenCharge(){
+    const el = document.getElementById('panel-hiddencharge');
+    if(!el) return;
+    if(!canManageAccess()){ el.innerHTML = ''; return; }
+    const keepCat = (document.getElementById('hcCatSel') || {}).value || '';
+    const keepFoodCat = (document.getElementById('hcFoodCat') || {}).value || '';
+    const keepFood = (document.getElementById('hcFoodSel') || {}).value || '';
+    const cats = hcAllCategories();
+    const catOpts = '<option value="">Select category…</option>' + cats.map(c => `<option value="${escapeHtml(c)}" ${c===keepCat?'selected':''}>${escapeHtml(c)}</option>`).join('');
+    const foodCatOpts = '<option value="">All categories</option>' + cats.map(c => `<option value="${escapeHtml(c)}" ${c===keepFoodCat?'selected':''}>${escapeHtml(c)}</option>`).join('');
+    const foodList = recipes.filter(r => !keepFoodCat || (r.category || '') === keepFoodCat).slice().sort((a,b)=>a.name.localeCompare(b.name));
+    const foodOpts = '<option value="">Select a saved recipe…</option>' + foodList.map(r => `<option value="${escapeHtml(r.id)}" ${r.id===keepFood?'selected':''}>${escapeHtml(r.name)}${keepFoodCat ? '' : ' (' + escapeHtml(r.category || '—') + ')'}</option>`).join('');
+
+    // Everything that currently carries a hidden charge (the latest charge applied to each food)
+    const applied = [];
+    recipes.forEach(r => {
+      const f = hiddenCharges.foods[r.id];
+      const c = hiddenCharges.categories[r.category || ''];
+      const fee = hiddenFeeFor(r);
+      if(f) applied.push({ r, fee, src:'Specific food', by:f.by, at:f.at });
+      else if(c && fee > 0) applied.push({ r, fee, src:'Category', by:c.by, at:c.at });
+    });
+    applied.sort((a,b)=> (b.at || '').localeCompare(a.at || '') || a.r.name.localeCompare(b.r.name));
+    const appliedRows = applied.map(a => {
+      const base = (a.r.costPerPax || 0) * MARKUP;
+      return `<tr><td>${escapeHtml(a.r.name)}</td><td>${escapeHtml(a.r.category || '—')}</td><td><span class="hc-pill ${a.src==='Category'?'cat':'food'}">${a.src}</span></td>` +
+        `<td class="num">${PHP(base)}</td><td class="num">${a.fee ? '+' + PHP(a.fee) : 'exempt'}</td><td class="num"><b>${PHP(base + a.fee)}</b></td><td>${escapeHtml(a.by || '')}<br><span style="color:var(--steel);font-size:11px;">${hcFmtDate(a.at)}</span></td></tr>`;
+    }).join('');
+
+    const pkgRows = packages.slice().sort((a,b)=> (b.savedAt || '').localeCompare(a.savedAt || '')).map(pk => {
+      const ok = pkgHcEligible(pk);
+      const pax = (pk.pax || 0) > 0 ? pk.pax : 1;
+      const parts = (pk.foodItems || []).filter(f => f.hiddenFee).map(f => escapeHtml(f.description || '—') + ' +' + PHP(f.hiddenFee) + ' × ' + pax)
+        .concat((pk.extraFoodItems || []).filter(f => f.hiddenFee).map(f => escapeHtml(f.description || '—') + ' (add’l) +' + PHP(f.hiddenFee) + ' × ' + (f.qty || 0)));
+      return `<tr><td>${escapeHtml(pk.name)}${pk.soNumber ? '<br><span style="color:var(--steel);font-size:11px;">SO# ' + escapeHtml(pk.soNumber) + '</span>' : ''}</td><td>${pk.savedAt ? hcFmtDate(pk.savedAt) : '—'}</td>` +
+        `<td>${ok ? '<span class="hc-pill food">Included</span>' : '<span class="hc-pill">Not included</span>'}</td>` +
+        `<td>${ok ? (parts.length ? parts.join('<br>') : '<span style="color:var(--steel);">none on its foods</span>') : '<span style="color:var(--steel);">saved before ' + HC_START_LABEL + '</span>'}</td>` +
+        `<td class="num">${ok ? PHP(pkgHcTotal(pk)) : '—'}</td></tr>`;
+    }).join('');
+    const catRows = Object.keys(hiddenCharges.categories).sort().map(k => {
+      const c = hiddenCharges.categories[k];
+      const n = recipes.filter(r => (r.category || '') === k && !(hiddenCharges.foods[r.id])).length;
+      return `<tr><td>${escapeHtml(k)}</td><td class="num">+${PHP(c.amount)}</td><td class="num">${n} food${n===1?'':'s'}</td><td>${escapeHtml(c.by || '')}<br><span style="color:var(--steel);font-size:11px;">${hcFmtDate(c.at)}</span></td><td><button type="button" class="hc-x" data-hc-del-cat="${escapeHtml(k)}" title="Remove this category charge">×</button></td></tr>`;
+    }).join('');
+    const foodRows = Object.keys(hiddenCharges.foods).sort((a,b)=> (hiddenCharges.foods[a].name||'').localeCompare(hiddenCharges.foods[b].name||'')).map(k => {
+      const f = hiddenCharges.foods[k];
+      return `<tr><td>${escapeHtml(f.name || k)}</td><td>${escapeHtml(f.category || '—')}</td><td class="num">${Number(f.amount) ? '+' + PHP(f.amount) : 'exempt'}</td><td>${escapeHtml(f.by || '')}<br><span style="color:var(--steel);font-size:11px;">${hcFmtDate(f.at)}</span></td><td><button type="button" class="hc-x" data-hc-del-food="${escapeHtml(k)}" title="Remove this food charge">×</button></td></tr>`;
+    }).join('');
+    const logRows = hiddenCharges.log.slice(0, 15).map(l => `<tr><td>${hcFmtDate(l.at)}</td><td>${escapeHtml(l.by || '')}</td><td>${escapeHtml(l.action)}</td><td>${escapeHtml(l.target)}</td><td class="num">${l.oldAmt == null ? '—' : PHP(l.oldAmt)} → ${l.newAmt == null ? 'removed' : PHP(l.newAmt)}</td></tr>`).join('');
+
+    el.innerHTML = `
+      <div class="card ticket" style="margin-bottom:18px;">
+        <p class="section-label">HIDDEN CHARGE — ADMIN ONLY</p>
+        <p class="hc-help" style="margin:0;font-size:13px;color:var(--ink-soft);">Add an extra ₱ amount <b>per pax</b> on top of the selling price (cost × ${MARKUP}). Nobody but the Admin ever sees it — Sales and everyone else just see the final selling price in Packages. Hidden charges count <b>starting ${HC_START_LABEL}</b>: only packages first saved on or after that date carry them. Earlier packages are never charged, even if edited, and are marked “not included” below.</p>
+      </div>
+      <div class="hc-grid">
+        <div class="hc-card">
+          <h3>Option 1 — By category</h3>
+          <p class="hc-help">Every recipe under the category gets this amount added. e.g. Beef Entree + ₱100 → all beef entrees +₱100 per pax.</p>
+          <div class="hc-form">
+            <div><label for="hcCatSel">Category</label><select id="hcCatSel">${catOpts}</select></div>
+            <div><label for="hcCatAmt">Hidden charge (₱ / pax)</label><input type="number" id="hcCatAmt" min="0" step="0.01" placeholder="e.g. 100"></div>
+            <div style="flex:0 0 auto;min-width:0;"><button type="button" class="save-btn" id="hcCatApply" style="margin:0;">Apply to category</button></div>
+          </div>
+        </div>
+        <div class="hc-card">
+          <h3>Option 2 — Specific food only</h3>
+          <p class="hc-help">Only that one food is affected; the rest of its category is not. A food charge replaces its category's charge (enter 0 to exempt it).</p>
+          <div class="hc-form">
+            <div><label for="hcFoodCat">Category filter</label><select id="hcFoodCat">${foodCatOpts}</select></div>
+            <div><label for="hcFoodSel">Food</label><select id="hcFoodSel">${foodOpts}</select></div>
+            <div><label for="hcFoodAmt">Hidden charge (₱ / pax)</label><input type="number" id="hcFoodAmt" min="0" step="0.01" placeholder="e.g. 50"></div>
+            <div style="flex:0 0 auto;min-width:0;"><button type="button" class="save-btn" id="hcFoodApply" style="margin:0;">Apply to food</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="hc-msg" id="hcMsg"></div>
+
+      <div class="hc-grid" style="margin-top:6px;">
+        <div class="hc-card">
+          <h3>Active category charges</h3>
+          ${catRows ? `<table class="hc-tbl"><thead><tr><th>Category</th><th class="num">Charge</th><th class="num">Foods affected</th><th>Set by</th><th></th></tr></thead><tbody>${catRows}</tbody></table>` : '<div class="hc-empty">No category charges yet.</div>'}
+        </div>
+        <div class="hc-card">
+          <h3>Active specific-food charges</h3>
+          ${foodRows ? `<table class="hc-tbl"><thead><tr><th>Food</th><th>Category</th><th class="num">Charge</th><th>Set by</th><th></th></tr></thead><tbody>${foodRows}</tbody></table>` : '<div class="hc-empty">No specific-food charges yet.</div>'}
+        </div>
+      </div>
+
+      <div class="hc-card" style="margin-top:18px;">
+        <h3>Latest hidden charge applied to each food</h3>
+        <p class="hc-help">What Packages is using right now. “Base” = cost/pax × ${MARKUP}; “Selling” = base + hidden charge (this is the only price others see).</p>
+        ${appliedRows ? `<div style="overflow-x:auto;"><table class="hc-tbl"><thead><tr><th>Food</th><th>Category</th><th>Applied via</th><th class="num">Base selling</th><th class="num">Hidden charge</th><th class="num">Selling /pax</th><th>Latest change</th></tr></thead><tbody>${appliedRows}</tbody></table></div>` : '<div class="hc-empty">No hidden charges are applied to any food yet.</div>'}
+      </div>
+
+      <div class="hc-card" style="margin-top:18px;">
+        <h3>Hidden charge in saved packages</h3>
+        <p class="hc-help">Per package, by food. Packages saved before ${HC_START_LABEL} are not included.</p>
+        ${pkgRows ? `<div style="overflow-x:auto;"><table class="hc-tbl"><thead><tr><th>Package</th><th>Saved</th><th>Status</th><th>Hidden charge by food</th><th class="num">Total hidden</th></tr></thead><tbody>${pkgRows}</tbody></table></div>` : '<div class="hc-empty">No packages saved yet.</div>'}
+      </div>
+
+      <div class="hc-card" style="margin-top:18px;">
+        <h3>Recent changes</h3>
+        ${logRows ? `<div style="overflow-x:auto;"><table class="hc-tbl"><thead><tr><th>When</th><th>By</th><th>Action</th><th>Applied to</th><th class="num">Amount</th></tr></thead><tbody>${logRows}</tbody></table></div>` : '<div class="hc-empty">No changes recorded yet.</div>'}
+      </div>`;
+
+    document.getElementById('hcFoodCat').addEventListener('change', renderHiddenCharge);
+    document.getElementById('hcCatSel').addEventListener('change', e => {
+      const c = hiddenCharges.categories[e.target.value];
+      document.getElementById('hcCatAmt').value = c ? c.amount : '';
+    });
+    document.getElementById('hcFoodSel').addEventListener('change', e => {
+      const f = hiddenCharges.foods[e.target.value];
+      document.getElementById('hcFoodAmt').value = f ? f.amount : '';
+    });
+    document.getElementById('hcCatApply').addEventListener('click', async () => {
+      const cat = document.getElementById('hcCatSel').value;
+      const raw = document.getElementById('hcCatAmt').value;
+      const amt = parseFloat(raw);
+      if(!cat){ hcMsg('Pick a category first.', false); return; }
+      if(raw === '' || !(amt >= 0)){ hcMsg('Enter the hidden charge amount (₱ per pax).', false); return; }
+      await hcMutate(d => {
+        const old = d.categories[cat] ? d.categories[cat].amount : null;
+        if(amt === 0){ delete d.categories[cat]; hcLog(d, 'Removed', 'Category', cat, old, null); }
+        else { d.categories[cat] = { amount:amt, by:currentUser || 'Admin', at:new Date().toISOString() }; hcLog(d, old == null ? 'Added' : 'Changed', 'Category', cat, old, amt); }
+      });
+      hcMsg(amt === 0 ? 'Removed the hidden charge on ' + cat + '.' : 'Saved: every ' + cat + ' recipe now has +' + PHP(amt) + ' per pax in its selling price.', true);
+    });
+    document.getElementById('hcFoodApply').addEventListener('click', async () => {
+      const id = document.getElementById('hcFoodSel').value;
+      const raw = document.getElementById('hcFoodAmt').value;
+      const amt = parseFloat(raw);
+      const rec = recipes.find(r => r.id === id);
+      if(!rec){ hcMsg('Pick a food first.', false); return; }
+      if(raw === '' || !(amt >= 0)){ hcMsg('Enter the hidden charge amount (₱ per pax). Use 0 to exempt this food from its category charge.', false); return; }
+      await hcMutate(d => {
+        const old = d.foods[id] ? d.foods[id].amount : null;
+        d.foods[id] = { name:rec.name, category:rec.category || '', amount:amt, by:currentUser || 'Admin', at:new Date().toISOString() };
+        hcLog(d, old == null ? 'Added' : 'Changed', 'Food', rec.name, old, amt);
+      });
+      hcMsg('Saved: ' + rec.name + (amt ? ' now has +' + PHP(amt) + ' per pax in its selling price.' : ' is exempt from its category charge.'), true);
+    });
+    el.querySelectorAll('[data-hc-del-cat]').forEach(b => b.addEventListener('click', async () => {
+      const k = b.dataset.hcDelCat;
+      if(!window.confirm('Remove the hidden charge on "' + k + '"?')) return;
+      await hcMutate(d => { const old = d.categories[k] ? d.categories[k].amount : null; delete d.categories[k]; hcLog(d, 'Removed', 'Category', k, old, null); });
+    }));
+    el.querySelectorAll('[data-hc-del-food]').forEach(b => b.addEventListener('click', async () => {
+      const k = b.dataset.hcDelFood;
+      const f = hiddenCharges.foods[k];
+      if(!window.confirm('Remove the hidden charge on "' + (f ? f.name : k) + '"?')) return;
+      await hcMutate(d => { const old = d.foods[k] ? d.foods[k].amount : null; const nm = d.foods[k] ? d.foods[k].name : k; delete d.foods[k]; hcLog(d, 'Removed', 'Food', nm, old, null); });
+    }));
+  }
   const pkgFoodRowsEl = document.getElementById('pkgFoodRows');
   const pkgExtraFoodRowsEl = document.getElementById('pkgExtraFoodRows');
   const pkgServiceRowsEl = document.getElementById('pkgServiceRows');
@@ -7140,9 +7402,13 @@ function initApp(){
         <span class="mini-label">Recipe</span>
         <select class="f-recipe">${foodRecipeOptionsHtml(_startCat)}</select>
       </div>
-      <div>
+      <div class="raw-only">
         <span class="mini-label">Price /pax</span>
         <div class="f-price-display">₱0.00</div>
+      </div>
+      <div class="raw-only">
+        <span class="mini-label">Hidden charge</span>
+        <div class="f-hc-display">—</div>
       </div>
       <div class="line-cost">₱0.00</div>
       <button type="button" class="row-remove" title="Remove item">×</button>
@@ -7213,10 +7479,12 @@ function initApp(){
       const recipe = recipes.find(r => r.id === recipeId);
       const description = recipe ? recipe.name : '';
       const price = recipe ? recipe.costPerPax : 0;
-      const charged = price * MARKUP;
+      const hiddenFee = recipe ? pkgFeeFor(recipe) : 0;
+      const charged = price * MARKUP + hiddenFee;
       row.querySelector('.line-cost').textContent = PHP(charged);
+      const _hc = row.querySelector('.f-hc-display'); if(_hc) _hc.textContent = hiddenFee ? '+' + PHP(hiddenFee) : '—';
       updateFoodRowDisplay(row);
-      return { description, price, charged, recipeId };
+      return { description, price, charged, recipeId, hiddenFee };
     });
   }
 
@@ -7248,9 +7516,13 @@ function initApp(){
         <span class="mini-label">Pax</span>
         <input type="number" class="f-extra-qty" min="0" step="any" placeholder="e.g. 20">
       </div>
-      <div>
+      <div class="raw-only">
         <span class="mini-label">Price /pax</span>
         <div class="f-price-display">₱0.00</div>
+      </div>
+      <div class="raw-only">
+        <span class="mini-label">Hidden charge</span>
+        <div class="f-hc-display">—</div>
       </div>
       <div>
         <span class="mini-label">Selling price /pax</span>
@@ -7285,14 +7557,16 @@ function initApp(){
       const qty = parseFloat(row.querySelector('.f-extra-qty').value) || 0;
       const description = recipe ? recipe.name : '';
       const price = recipe ? (recipe.costPerPax || 0) : 0;
-      const charged = price * MARKUP;
+      const hiddenFee = recipe ? pkgFeeFor(recipe) : 0;
+      const charged = price * MARKUP + hiddenFee;
       const lineCost = price * qty;
       const lineCharged = charged * qty;
       const displays = row.querySelectorAll('.f-price-display');
       displays[0].textContent = PHP(price);
       displays[1].textContent = PHP(charged);
       row.querySelector('.line-cost').textContent = PHP(lineCharged);
-      return { description, recipeId, qty, price, charged, lineCost, lineCharged };
+      const _hc = row.querySelector('.f-hc-display'); if(_hc) _hc.textContent = hiddenFee ? '+' + PHP(hiddenFee) : '—';
+      return { description, recipeId, qty, price, charged, lineCost, lineCharged, hiddenFee };
     });
   }
   document.getElementById('addPkgExtraFoodBtn').addEventListener('click', ()=>addExtraFoodRow());
@@ -7333,6 +7607,10 @@ function initApp(){
 
     document.getElementById('pkgExtraFoodTotal').textContent = PHP(extraChargedTotal);
     document.getElementById('pkgFoodSubtotal').textContent = PHP(foodOnlyPriceSum);
+    const _hcPer = foodRows.reduce((a,r)=>a+(r.hiddenFee||0),0);
+    const _hcTot = _hcPer * paxMultiplier + extraRows.reduce((a,r)=>a+(r.hiddenFee||0)*(r.qty||0),0);
+    document.getElementById('pkgHiddenPerPax').textContent = hcApplyNow ? PHP(_hcPer) : 'not included';
+    document.getElementById('pkgHiddenTotal').textContent = hcApplyNow ? PHP(_hcTot) : 'not included';
     document.getElementById('pkgFoodCharged').textContent = PHP(foodOnlyCharged);
     document.getElementById('pkgFoodChargedTotal').textContent = PHP(foodChargedTotal);
     document.getElementById('pkgServiceTotal').textContent = PHP(serviceTotal);
@@ -7454,6 +7732,7 @@ function initApp(){
 
   function enterPkgEditMode(pkg){
     editingPkgId = pkg.id;
+    hcApplyNow = pkgHcEligible(pkg);   // packages saved before the start date never get hidden charges
     document.getElementById('pkgSoNumber').value = pkg.soNumber || '';
     document.getElementById('pkgEventDate').value = pkgDate(pkg);
     document.getElementById('pkgName').value = pkg.name;
@@ -7500,6 +7779,7 @@ function initApp(){
 
   function exitPkgEditMode(){
     editingPkgId = null;
+    hcApplyNow = true;
     editingPkgBanner.style.display = 'none';
     savePkgBtn.textContent = 'Save package';
   }
@@ -7684,6 +7964,7 @@ function initApp(){
           ${d ? `<span class="cat-tag date-tag">📅 ${escapeHtml(fmtIso(d))}</span>` : '<span class="cat-tag nodate-tag">no date yet</span>'}
           <span class="cat-tag">${pkg.foodItems.length} food${(pkg.extraFoodItems||[]).length ? ' + ' + pkg.extraFoodItems.length + ' additional' : ''} · ${serviceCount} service role${serviceCount===1?'':'s'} · ${pkg.miscItems.length} misc</span>
           ${pkg.pax ? `<span class="cat-tag">${pkg.pax} pax</span>` : ''}
+          ${canManageAccess() ? pkgHcBadge(pkg) : ''}
           <div class="rname">${escapeHtml(pkg.name)}</div>
           <div class="rmeta">selling price/pax: ${PHP(pkg.foodCharged)} · service: ${PHP(serviceTotal)} · misc (flat): ${PHP(pkg.miscTotal)}${pkg.pax ? ' · ' + PHP(pkg.pricePerPax) + ' / pax' : ''}</div>
           <div class="pax-adjust">
@@ -8634,6 +8915,9 @@ function initApp(){
     if(masterArchiveBtn) masterArchiveBtn.style.display = canManageAccess() ? 'inline-block' : 'none';
     if(manageAccessBtn) manageAccessBtn.style.display = canManageAccess() ? 'inline-block' : 'none';
 
+    document.body.classList.toggle('not-admin', !canManageAccess());   // raw price/pax is Admin-only
+    const hcBtn = document.getElementById('hiddenChargeTabBtn'); if(hcBtn) hcBtn.style.display = 'none';
+    if(!canManageAccess()){ const hcp = document.getElementById('panel-hiddencharge'); if(hcp) hcp.innerHTML = ''; }
     const cvBtn = document.getElementById('conversionOpenBtn'); if(cvBtn) cvBtn.style.display = canManageAccess() ? 'inline-block' : 'none';
     const creationDisabledMsg = 'Viewers cannot create or edit entries.';
     [
@@ -9212,6 +9496,7 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
     await loadRecipes();
     await loadPlans();
     await loadPackages();
+    await loadHiddenCharges();
     await loadInventory();
     await loadInventoryHistory();
     await syncProductionCommitments();
@@ -9232,7 +9517,7 @@ document.getElementById('catFilter').onchange=function(e){var v=e.target.value;
     // focus, but never while someone is mid-edit on a form (so we don't
     // yank a half-filled recipe/plan/package out from under them).
     setInterval(()=>{
-      if(!editingId && !editingProdId && !editingPkgId){ syncFromFirestore(); ftQuietReload(); }
+      if(!editingId && !editingProdId && !editingPkgId){ syncFromFirestore(); ftQuietReload(); loadHiddenCharges(); }
     }, 45000);
     document.addEventListener('visibilitychange', ()=>{
       if(document.visibilityState === 'visible' && !editingId && !editingProdId && !editingPkgId){
@@ -9490,7 +9775,8 @@ function navGroups(){
     { n:'Food Tasting',   subs:[['foodtasting','New Food Tasting','input'],['foodtasting','Saved Food Tasting','saved'],['foodtasting','For Evaluation','eval']] },
     { n:'History',        subs:[['history','Package History','pkg'],['history','Food Tasting History','ft']] }
   ];
-  return NAV_GROUPS.map(g => ({ n:g.n, subs:g.subs.filter(s => (s[2] !== 'pkg' || canSeePkgHistory()) && (s[2] !== 'ft' || canSeeFtHistory()) && !((g.n === 'Packages' || g.n === 'Food Tasting') && s[2] === 'input' && !canCreate())) })).filter(g => g.subs.length);   // read-only levels have no package form, so no "New Package" sub-tab
+  const _groups = NAV_GROUPS.concat(canManageAccess() ? [{ n:'Hidden Charge', subs:[['hiddencharge','Hidden Charge']] }] : []);
+  return _groups.map(g => ({ n:g.n, subs:g.subs.filter(s => (s[2] !== 'pkg' || canSeePkgHistory()) && (s[2] !== 'ft' || canSeeFtHistory()) && !((g.n === 'Packages' || g.n === 'Food Tasting') && s[2] === 'input' && !canCreate())) })).filter(g => g.subs.length);   // read-only levels have no package form, so no "New Package" sub-tab
 }
 function activeTabId(){
   const a = document.querySelector('.tab-btn.active');
@@ -9508,6 +9794,7 @@ function showHome(){
   window.scrollTo(0, 0);
 }
 function goTab(id, view){
+  if(id === 'hiddencharge' && !canManageAccess()) return;   // Admin only
   if(isSales() && id !== 'packages' && id !== 'history' && id !== 'calendar' && id !== 'foodtasting') return;   // Sales: Packages, package history + view-only Calendar
   if(id === 'history'){ if(view === 'ft' && canSeeFtHistory()) view = 'ft'; else if(isSales() || (view === 'pkg' && canSeePkgHistory())) view = 'pkg'; else view = 'inv'; }
   if(id === 'foodtasting'){ view = view || (canCreate() ? 'input' : 'saved'); document.getElementById('panel-foodtasting').dataset.view = view; }
