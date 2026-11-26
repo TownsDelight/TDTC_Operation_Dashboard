@@ -372,6 +372,9 @@
     padding:10px 0;
     border-bottom:1px solid var(--surface-alt);
   }
+  .req-star{color:#C2452D;font-weight:700;}
+  input.field-invalid{border-color:#D9644A !important;box-shadow:0 0 0 2px rgba(217,100,74,.25) !important;background:#FFF3EF !important;}
+  .vat-input-row input.field-invalid{background:#3A2420 !important;color:#FFE3DC !important;}
   .svc-role-row:first-of-type{padding-top:0;}
   .svc-role-row:last-of-type{border-bottom:none;}
   .svc-role-label{
@@ -2668,11 +2671,11 @@
           <div id="pkgExtraFoodRows"></div>
           <button class="add-ingredient-btn" id="addPkgExtraFoodBtn" type="button">+ Add additional food item</button>
 
-          <p class="section-label" style="margin-top:22px;">SERVICE STAFF & LOGISTICS <span style="color:var(--steel);">(price × qty per role)</span></p>
+          <p class="section-label" style="margin-top:22px;">SERVICE STAFF & LOGISTICS <span style="color:var(--steel);">(price × qty per role — all four required)</span> <span class="req-star">*</span></p>
           <div class="headcols" style="grid-template-columns:1.3fr 0.9fr 0.6fr 0.9fr;">
-            <span>Role</span>
-            <span>Price (₱)</span>
-            <span>Qty</span>
+            <span>Role <span class="req-star">*</span></span>
+            <span>Price (₱) <span class="req-star">*</span></span>
+            <span>Qty <span class="req-star">*</span></span>
             <span>Line total</span>
           </div>
           <div id="pkgServiceRows"></div>
@@ -2740,11 +2743,11 @@
           <div class="pkg-piechart raw-only">
             <p class="section-label" style="color:#9C9F92;margin-top:18px;margin-bottom:10px;">PRICE STRUCTURE (% of total)</p>
             <div class="vat-input-row">
-              <label for="pkgVatRate">VAT rate</label>
-              <input type="number" id="pkgVatRate" min="0" max="100" step="0.1" value="12">
+              <label for="pkgVatRate">VAT rate <span class="req-star">*</span></label>
+              <input type="number" id="pkgVatRate" min="0" max="100" step="0.1" value="12" required>
               <span>%</span>
-              <label for="pkgPackageCostInput" style="margin-left:14px;">Standard package</label>
-              <input type="number" id="pkgPackageCostInput" min="0" step="0.01" placeholder="e.g. 1650" style="width:100px;">
+              <label for="pkgPackageCostInput" style="margin-left:14px;">Standard package <span class="req-star">*</span></label>
+              <input type="number" id="pkgPackageCostInput" min="0.01" step="0.01" placeholder="e.g. 1650" style="width:100px;" required>
             </div>
             <div class="piechart-row">
               <div class="piechart-circle" id="pkgStructureChart"></div>
@@ -7289,14 +7292,14 @@ function initApp(){
     pkgServiceRowsEl.innerHTML = SERVICE_ROLES.map(role => `
       <div class="svc-role-row" data-role="${escapeHtml(role)}">
         <div class="svc-role-label">${escapeHtml(role)}</div>
-        <input type="number" class="svc-price" min="0" step="0.01" placeholder="0.00">
-        <input type="number" class="svc-qty" min="0" step="1" placeholder="0">
+        <input type="number" class="svc-price" min="0.01" step="0.01" placeholder="0.00" required>
+        <input type="number" class="svc-qty" min="1" step="1" placeholder="0" required>
         <div class="line-cost">₱0.00</div>
       </div>
     `).join('');
 
     pkgServiceRowsEl.querySelectorAll('input').forEach(el=>{
-      el.addEventListener('input', updatePackageSummary);
+      el.addEventListener('input', ()=>{ el.classList.remove('field-invalid'); updatePackageSummary(); });
     });
   }
 
@@ -7724,7 +7727,7 @@ function initApp(){
 
     if(packageCost <= 0){
       circle.style.background = '#33362F';
-      legend.innerHTML = `<div class="legend-item"><span class="legend-label">Select a standard package above to see the breakdown.</span></div>`;
+      legend.innerHTML = `<div class="legend-item"><span class="legend-label">Enter the standard package price to see the cost breakdown.</span></div>`;
       return;
     }
 
@@ -7761,8 +7764,8 @@ function initApp(){
     `).join('') + (marginPct < 0 ? '<div class="legend-warning">⚠ Cost of Goods + VAT exceed the total package price</div>' : '');
   }
 
-  document.getElementById('pkgVatRate').addEventListener('input', updatePackageSummary);
-  document.getElementById('pkgPackageCostInput').addEventListener('input', updatePackageSummary);
+  document.getElementById('pkgVatRate').addEventListener('input', function(){ this.classList.remove('field-invalid'); updatePackageSummary(); });
+  document.getElementById('pkgPackageCostInput').addEventListener('input', function(){ this.classList.remove('field-invalid'); updatePackageSummary(); });
   document.getElementById('pkgPax').addEventListener('input', updatePackageSummary);
 
   function resetPkgForm(){
@@ -7865,6 +7868,33 @@ function initApp(){
       pkgFormMsg.className = 'form-msg err';
       return;
     }
+    // ---- Required: all four service roles (price + qty), VAT rate, standard package ----
+    const _reqMissing = [];
+    let _firstBad = null;
+    document.querySelectorAll('#pkgServiceRows .field-invalid, #pkgVatRate.field-invalid, #pkgPackageCostInput.field-invalid')
+      .forEach(el => el.classList.remove('field-invalid'));
+    const _flag = (el, label) => { el.classList.add('field-invalid'); if(!_firstBad) _firstBad = el; if(label && !_reqMissing.includes(label)) _reqMissing.push(label); };
+    pkgServiceRowsEl.querySelectorAll('.svc-role-row').forEach(row => {
+      const role = row.dataset.role;
+      const pEl = row.querySelector('.svc-price'), qEl = row.querySelector('.svc-qty');
+      if(!(parseFloat(pEl.value) > 0)) _flag(pEl, role + ' price');
+      if(!(parseFloat(qEl.value) >= 1)) _flag(qEl, role + ' qty');
+    });
+    const _vatEl = document.getElementById('pkgVatRate');
+    const _stdEl = document.getElementById('pkgPackageCostInput');
+    // The price-structure block is admin-only (hidden for other roles) — only enforce it where it is visible.
+    if(_vatEl.offsetParent !== null){
+      const _v = parseFloat(_vatEl.value);
+      if(_vatEl.value.trim() === '' || isNaN(_v) || _v < 0 || _v > 100) _flag(_vatEl, 'VAT rate (0–100%)');
+      if(!(parseFloat(_stdEl.value) > 0)) _flag(_stdEl, 'Standard package price');
+    }
+    if(_reqMissing.length){
+      pkgFormMsg.textContent = 'Required before saving: ' + _reqMissing.join(', ') + '.';
+      pkgFormMsg.className = 'form-msg err';
+      try{ _firstBad.scrollIntoView({behavior:'smooth', block:'center'}); _firstBad.focus({preventScroll:true}); }catch(e){}
+      return;
+    }
+
     const hasService = serviceItems.some(s => s.price > 0 && s.qty > 0);
     if(foodItems.length === 0 && extraFoodItems.length === 0 && !hasService && miscItems.length === 0){
       pkgFormMsg.textContent = 'Add at least one food, service, or miscellaneous item.';
